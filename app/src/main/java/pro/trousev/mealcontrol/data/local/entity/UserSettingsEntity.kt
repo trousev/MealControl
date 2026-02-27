@@ -16,5 +16,6 @@ data class UserSettingsEntity(
     val calorieDistribution: String = "HIGH_PROTEIN",
     val customProteinPercent: Int = 40,
     val customFatPercent: Int = 30,
-    val customCarbPercent: Int = 30
+    val customCarbPercent: Int = 30,
+    val openAiApiKey: String = ""
 )

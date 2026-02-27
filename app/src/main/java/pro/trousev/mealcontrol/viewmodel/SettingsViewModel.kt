@@ -51,6 +51,7 @@ data class SettingsFormState(
     val customProteinPercent: Int = 40,
     val customFatPercent: Int = 30,
     val customCarbPercent: Int = 30,
+    val openAiApiKey: String = "",
     val isValid: Boolean = false,
     val calculation: CalorieCalculation? = null,
     val customDistributionError: String? = null
@@ -98,6 +99,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                     calorieDistribution = distribution,
                     customProteinPercent = settings.customProteinPercent,
                     customFatPercent = settings.customFatPercent,
+                    openAiApiKey = settings.openAiApiKey,
                     isValid = true,
                     calculation = calculateCalories(
                         weightKg = settings.weightKg,
@@ -181,6 +183,11 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         recalculate()
     }
 
+    fun updateOpenAiApiKey(apiKey: String) {
+        _formState.value = _formState.value.copy(openAiApiKey = apiKey)
+        autoSaveSettings()
+    }
+
     private fun recalculate() {
         val state = _formState.value
         val weight = state.weightKg.toFloatOrNull() ?: 0f
@@ -229,7 +236,8 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 calorieDistribution = state.calorieDistribution.name,
                 customProteinPercent = state.customProteinPercent,
                 customFatPercent = state.customFatPercent,
-                customCarbPercent = state.customCarbPercent
+                customCarbPercent = state.customCarbPercent,
+                openAiApiKey = state.openAiApiKey
             )
             repository.saveSettings(settings)
         }
