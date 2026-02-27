@@ -22,6 +22,7 @@ data class MealComponentEntity(
     val id: Long = 0,
     val mealId: Long,
     val name: String,
+    val weightGrams: Int = 0,
     val calories: Int,
     val proteinGrams: Int = 0,
     val fatGrams: Int = 0,

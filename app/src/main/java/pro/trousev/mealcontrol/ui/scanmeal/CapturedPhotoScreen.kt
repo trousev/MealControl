@@ -27,6 +27,7 @@ import java.io.File
 
 data class MealComponent(
     val name: String,
+    val weightGrams: Int,
     val calories: Int,
     val proteinGrams: Int,
     val fatGrams: Int,
@@ -36,17 +37,17 @@ data class MealComponent(
 @Composable
 fun CapturedPhotoScreen(
     photoUri: String,
-    onSubmit: (String, List<Pair<String, List<Int>>>) -> Unit,
+    onSubmit: (String, List<Triple<String, Int, List<Int>>>) -> Unit,
     onRetake: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val hardcodedDescription = "Grilled Chicken Salad"
     val hardcodedComponents = listOf(
-        MealComponent("Grilled Chicken", 250, 45, 8, 0),
-        MealComponent("Mixed Greens", 30, 2, 0, 6),
-        MealComponent("Cherry Tomatoes", 20, 1, 0, 4),
-        MealComponent("Olive Oil Dressing", 150, 0, 14, 0),
-        MealComponent("Avocado", 80, 1, 7, 4)
+        MealComponent("Grilled Chicken", 125, 250, 45, 8, 0),
+        MealComponent("Mixed Greens", 80, 30, 2, 0, 6),
+        MealComponent("Cherry Tomatoes", 50, 20, 1, 0, 4),
+        MealComponent("Olive Oil Dressing", 15, 150, 0, 14, 0),
+        MealComponent("Avocado", 50, 80, 1, 7, 4)
     )
     val totalCalories = hardcodedComponents.sumOf { it.calories }
     val totalProtein = hardcodedComponents.sumOf { it.proteinGrams }
@@ -97,10 +98,28 @@ fun CapturedPhotoScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(vertical = 4.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Top
                     ) {
-                        Text(text = component.name)
-                        Text(text = "${component.calories} kcal (P:${component.proteinGrams}g F:${component.fatGrams}g C:${component.carbGrams}g)")
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(text = "${component.weightGrams}g of ${component.name}")
+                            Text(
+                                text = "${component.proteinGrams}g prot, ${component.fatGrams}g fat, ${component.carbGrams}g carb",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "${component.calories}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                text = "KCAL",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
 
@@ -125,7 +144,7 @@ fun CapturedPhotoScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { onSubmit(hardcodedDescription, hardcodedComponents.map { it.name to listOf(it.calories, it.proteinGrams, it.fatGrams, it.carbGrams) }) },
+            onClick = { onSubmit(hardcodedDescription, hardcodedComponents.map { Triple(it.name, it.weightGrams, listOf(it.calories, it.proteinGrams, it.fatGrams, it.carbGrams)) }) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Submit")
