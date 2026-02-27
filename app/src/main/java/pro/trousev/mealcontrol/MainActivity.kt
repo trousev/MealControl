@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -51,8 +50,9 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MealControlApp() {
-    var currentTab by rememberSaveable { mutableStateOf(AppTab.SCAN_MEAL) }
+    var currentTab by rememberSaveable { mutableStateOf(AppTab.MEALS) }
     var capturedPhotoUri by rememberSaveable { mutableStateOf<String?>(null) }
+    var showCamera by rememberSaveable { mutableStateOf(false) }
     var selectedConversationId by rememberSaveable { mutableLongStateOf(-1L) }
 
     val mealViewModel: MealViewModel = viewModel()
@@ -75,6 +75,7 @@ fun MealControlApp() {
                         onClick = {
                             currentTab = tab
                             capturedPhotoUri = null
+                            showCamera = false
                             selectedConversationId = -1L
                         }
                     )
@@ -88,34 +89,41 @@ fun MealControlApp() {
                 .padding(innerPadding)
         ) {
             when (currentTab) {
-                AppTab.SCAN_MEAL -> {
-                    if (capturedPhotoUri != null) {
-                        CapturedPhotoScreen(
-                            photoUri = capturedPhotoUri!!,
-                            onSubmit = { description, components ->
-                                mealViewModel.saveMeal(
-                                    photoUri = capturedPhotoUri!!,
-                                    description = description,
-                                    components = components
-                                )
-                                capturedPhotoUri = null
-                                currentTab = AppTab.MEALS
-                            },
-                            onRetake = { capturedPhotoUri = null }
-                        )
-                    } else {
-                        ScanMealScreen(
-                            onPhotoCaptured = { uri ->
-                                capturedPhotoUri = uri
-                            }
-                        )
-                    }
-                }
-
                 AppTab.MEALS -> {
-                    MealsScreen(
-                        viewModel = mealViewModel
-                    )
+                    when {
+                        capturedPhotoUri != null -> {
+                            CapturedPhotoScreen(
+                                photoUri = capturedPhotoUri!!,
+                                onSubmit = { description, components ->
+                                    mealViewModel.saveMeal(
+                                        photoUri = capturedPhotoUri!!,
+                                        description = description,
+                                        components = components
+                                    )
+                                    capturedPhotoUri = null
+                                    showCamera = false
+                                },
+                                onRetake = { capturedPhotoUri = null }
+                            )
+                        }
+                        showCamera -> {
+                            ScanMealScreen(
+                                onPhotoCaptured = { uri ->
+                                    capturedPhotoUri = uri
+                                    showCamera = false
+                                }
+                            )
+                        }
+                        else -> {
+                            MealsScreen(
+                                mealViewModel = mealViewModel,
+                                settingsViewModel = settingsViewModel,
+                                onAddMealClick = {
+                                    showCamera = true
+                                }
+                            )
+                        }
+                    }
                 }
 
                 AppTab.CHAT -> {
@@ -149,7 +157,6 @@ enum class AppTab(
     val label: String,
     val icon: ImageVector,
 ) {
-    SCAN_MEAL("Scan Meal", Icons.Default.Star),
     MEALS("Meals", Icons.Default.List),
     CHAT("Chat", Icons.Default.Email),
     SETTINGS("Settings", Icons.Default.Settings),

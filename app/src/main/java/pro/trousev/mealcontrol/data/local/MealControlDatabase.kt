@@ -4,6 +4,8 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import pro.trousev.mealcontrol.data.local.dao.ConversationDao
 import pro.trousev.mealcontrol.data.local.dao.MealDao
 import pro.trousev.mealcontrol.data.local.dao.MessageDao
@@ -22,7 +24,7 @@ import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
         MessageEntity::class,
         UserSettingsEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class MealControlDatabase : RoomDatabase() {
@@ -35,6 +37,14 @@ abstract class MealControlDatabase : RoomDatabase() {
         @Volatile
         private var INSTANCE: MealControlDatabase? = null
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN proteinGrams INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN fatGrams INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN carbGrams INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): MealControlDatabase {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
@@ -42,7 +52,7 @@ abstract class MealControlDatabase : RoomDatabase() {
                     MealControlDatabase::class.java,
                     "meal_control_database"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(MIGRATION_2_3)
                     .build()
                 INSTANCE = instance
                 instance

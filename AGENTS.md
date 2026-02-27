@@ -10,6 +10,15 @@ MealControl is an Android application built with Kotlin and Jetpack Compose. It 
 - `./gradlew assembleDebug` - Build debug APK (requires manual JAVA_HOME/ANDROID_HOME setup)
 - `./gradlew assembleRelease` - Build release APK
 
+**IMPORTANT**: Always use `./script/build` for compilation. Do NOT attempt to install any packages, find custom Java installations, or set up the environment manually.
+
+### Build Environment
+All build operations require Java and Android SDK to be configured via environment variables. These MUST be set in a `.env` file in the project root:
+- `JAVA_HOME` - Path to Java installation
+- `ANDROID_ROOT` - Path to Android SDK
+
+If the `.env` file is missing or does not contain valid paths, inform the user that building is not possible and ask them to set up the environment.
+
 ### Run Tests
 - `./gradlew test` - Run unit tests
 - `./gradlew testDebugUnitTest` - Run unit tests for debug variant
@@ -92,30 +101,38 @@ import pro.trousev.mealcontrol.viewmodel.MealViewModel
 ### Database Migrations
 When adding new entities or modifying existing schema:
 1. **Always bump the version**: Increment `version` in `@Database` annotation
-2. **Add migration strategy**: Use one of these approaches:
-   - `fallbackToDestructiveMigration()` - Wipes and recreates all tables (data loss)
-   - `addMigrations()` - For incremental migrations with `Migration` classes
+2. **ALWAYS create a proper migration** - Never use `fallbackToDestructiveMigration()` in production, as it will WIPE ALL USER DATA
 3. **Test on device**: Schema changes require uninstall/reinstall or proper migration on device
 
-Example:
+**Migration Example**:
 ```kotlin
 @Database(
     entities = [...],
-    version = 2,  // Always increment when schema changes
+    version = 3,  // Always increment when schema changes
     exportSchema = false
 )
 abstract class MealControlDatabase : RoomDatabase() {
     companion object {
+        // Define migrations for each version increment
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // Add new columns with default values for existing rows
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN proteinGrams INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN fatGrams INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN carbGrams INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
         fun getDatabase(context: Context): MealControlDatabase {
             return Room.databaseBuilder(...)
-                .fallbackToDestructiveMigration()  // Use for development
-                // OR
-                // .addMigrations(Migration1to2)   // For production
+                .addMigrations(MIGRATION_2_3)  // Always add migrations
                 .build()
         }
     }
 }
 ```
+
+**Important**: Using `fallbackToDestructiveMigration()` should ONLY be used during initial development when you don't care about user data. For any released version, you MUST create proper `Migration` classes to preserve user data.
 
 ### Error Handling
 - Use `try-catch` blocks for operations that may throw

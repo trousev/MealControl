@@ -33,7 +33,7 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
     fun saveMeal(
         photoUri: String,
         description: String,
-        components: List<Pair<String, Int>>
+        components: List<Pair<String, List<Int>>>
     ) {
         viewModelScope.launch {
             repository.saveMeal(photoUri, description, components)
