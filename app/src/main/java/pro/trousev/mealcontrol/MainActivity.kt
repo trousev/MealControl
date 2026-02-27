@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -30,9 +31,11 @@ import pro.trousev.mealcontrol.ui.chat.ConversationsListScreen
 import pro.trousev.mealcontrol.ui.meals.MealsScreen
 import pro.trousev.mealcontrol.ui.scanmeal.CapturedPhotoScreen
 import pro.trousev.mealcontrol.ui.scanmeal.ScanMealScreen
+import pro.trousev.mealcontrol.ui.settings.SettingsScreen
 import pro.trousev.mealcontrol.ui.theme.MealControlTheme
 import pro.trousev.mealcontrol.viewmodel.ChatViewModel
 import pro.trousev.mealcontrol.viewmodel.MealViewModel
+import pro.trousev.mealcontrol.viewmodel.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -54,6 +57,7 @@ fun MealControlApp() {
 
     val mealViewModel: MealViewModel = viewModel()
     val chatViewModel: ChatViewModel = viewModel()
+    val settingsViewModel: SettingsViewModel = viewModel()
 
     Scaffold(
         bottomBar = {
@@ -130,6 +134,12 @@ fun MealControlApp() {
                         )
                     }
                 }
+
+                AppTab.SETTINGS -> {
+                    SettingsScreen(
+                        viewModel = settingsViewModel
+                    )
+                }
             }
         }
     }
@@ -142,4 +152,5 @@ enum class AppTab(
     SCAN_MEAL("Scan Meal", Icons.Default.Star),
     MEALS("Meals", Icons.Default.List),
     CHAT("Chat", Icons.Default.Email),
+    SETTINGS("Settings", Icons.Default.Settings),
 }

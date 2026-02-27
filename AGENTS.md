@@ -6,7 +6,8 @@ MealControl is an Android application built with Kotlin and Jetpack Compose. It 
 ## Build Commands
 
 ### Build
-- `./gradlew assembleDebug` - Build debug APK
+- `./script/build` - Build debug APK (recommended, handles Java/Android SDK setup)
+- `./gradlew assembleDebug` - Build debug APK (requires manual JAVA_HOME/ANDROID_HOME setup)
 - `./gradlew assembleRelease` - Build release APK
 
 ### Run Tests
@@ -88,16 +89,48 @@ import pro.trousev.mealcontrol.viewmodel.MealViewModel
 - Use `data class` for entities with default values where appropriate
 - Use `@PrimaryKey(autoGenerate = true)` for auto-incrementing IDs
 
+### Database Migrations
+When adding new entities or modifying existing schema:
+1. **Always bump the version**: Increment `version` in `@Database` annotation
+2. **Add migration strategy**: Use one of these approaches:
+   - `fallbackToDestructiveMigration()` - Wipes and recreates all tables (data loss)
+   - `addMigrations()` - For incremental migrations with `Migration` classes
+3. **Test on device**: Schema changes require uninstall/reinstall or proper migration on device
+
+Example:
+```kotlin
+@Database(
+    entities = [...],
+    version = 2,  // Always increment when schema changes
+    exportSchema = false
+)
+abstract class MealControlDatabase : RoomDatabase() {
+    companion object {
+        fun getDatabase(context: Context): MealControlDatabase {
+            return Room.databaseBuilder(...)
+                .fallbackToDestructiveMigration()  // Use for development
+                // OR
+                // .addMigrations(Migration1to2)   // For production
+                .build()
+        }
+    }
+}
+```
+
 ### Error Handling
 - Use `try-catch` blocks for operations that may throw
 - Wrap database operations in coroutines with `viewModelScope.launch`
 - Handle nullable types with `?` and Elvis operator `?:` appropriately
 
 ### Testing
+- **Every feature must include tests** - Never add new functionality without writing corresponding tests
 - Unit tests go in `app/src/test/java/`
 - Instrumented tests go in `app/src/androidTest/java/`
 - Use JUnit 4 with AndroidX Test
 - Test classes should be named with `Test` suffix (e.g., `ExampleUnitTest`)
+- Test ViewModels to verify state changes, calculations, and business logic
+- Test repositories to verify data operations
+- Run tests before committing: `./script/test`
 
 ### Gradle Configuration
 - Uses Kotlin DSL (`*.gradle.kts` files)
