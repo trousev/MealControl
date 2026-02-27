@@ -7,25 +7,29 @@ import androidx.room.RoomDatabase
 import pro.trousev.mealcontrol.data.local.dao.ConversationDao
 import pro.trousev.mealcontrol.data.local.dao.MealDao
 import pro.trousev.mealcontrol.data.local.dao.MessageDao
+import pro.trousev.mealcontrol.data.local.dao.UserSettingsDao
 import pro.trousev.mealcontrol.data.local.entity.ConversationEntity
 import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
 import pro.trousev.mealcontrol.data.local.entity.MealEntity
 import pro.trousev.mealcontrol.data.local.entity.MessageEntity
+import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
 
 @Database(
     entities = [
         MealEntity::class,
         MealComponentEntity::class,
         ConversationEntity::class,
-        MessageEntity::class
+        MessageEntity::class,
+        UserSettingsEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 abstract class MealControlDatabase : RoomDatabase() {
     abstract fun mealDao(): MealDao
     abstract fun conversationDao(): ConversationDao
     abstract fun messageDao(): MessageDao
+    abstract fun userSettingsDao(): UserSettingsDao
 
     companion object {
         @Volatile
@@ -37,7 +41,9 @@ abstract class MealControlDatabase : RoomDatabase() {
                     context.applicationContext,
                     MealControlDatabase::class.java,
                     "meal_control_database"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }
