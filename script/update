@@ -8,4 +8,4 @@ fi
 
 export JAVA_HOME
 export ANDROID_HOME
-./gradlew assembleDebug
+./gradlew dependencies
