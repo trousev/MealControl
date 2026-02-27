@@ -27,25 +27,31 @@ import java.io.File
 
 data class MealComponent(
     val name: String,
-    val calories: Int
+    val calories: Int,
+    val proteinGrams: Int,
+    val fatGrams: Int,
+    val carbGrams: Int
 )
 
 @Composable
 fun CapturedPhotoScreen(
     photoUri: String,
-    onSubmit: (String, List<Pair<String, Int>>) -> Unit,
+    onSubmit: (String, List<Pair<String, List<Int>>>) -> Unit,
     onRetake: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val hardcodedDescription = "Grilled Chicken Salad"
     val hardcodedComponents = listOf(
-        MealComponent("Grilled Chicken", 250),
-        MealComponent("Mixed Greens", 30),
-        MealComponent("Cherry Tomatoes", 20),
-        MealComponent("Olive Oil Dressing", 150),
-        MealComponent("Avocado", 80)
+        MealComponent("Grilled Chicken", 250, 45, 8, 0),
+        MealComponent("Mixed Greens", 30, 2, 0, 6),
+        MealComponent("Cherry Tomatoes", 20, 1, 0, 4),
+        MealComponent("Olive Oil Dressing", 150, 0, 14, 0),
+        MealComponent("Avocado", 80, 1, 7, 4)
     )
     val totalCalories = hardcodedComponents.sumOf { it.calories }
+    val totalProtein = hardcodedComponents.sumOf { it.proteinGrams }
+    val totalFat = hardcodedComponents.sumOf { it.fatGrams }
+    val totalCarbs = hardcodedComponents.sumOf { it.carbGrams }
 
     Column(
         modifier = modifier
@@ -94,7 +100,7 @@ fun CapturedPhotoScreen(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Text(text = component.name)
-                        Text(text = "${component.calories} kcal")
+                        Text(text = "${component.calories} kcal (P:${component.proteinGrams}g F:${component.fatGrams}g C:${component.carbGrams}g)")
                     }
                 }
 
@@ -109,7 +115,7 @@ fun CapturedPhotoScreen(
                         style = MaterialTheme.typography.titleMedium
                     )
                     Text(
-                        text = "$totalCalories kcal",
+                        text = "$totalCalories kcal (P:${totalProtein}g F:${totalFat}g C:${totalCarbs}g)",
                         style = MaterialTheme.typography.titleMedium
                     )
                 }
@@ -119,7 +125,7 @@ fun CapturedPhotoScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = { onSubmit(hardcodedDescription, hardcodedComponents.map { it.name to it.calories }) },
+            onClick = { onSubmit(hardcodedDescription, hardcodedComponents.map { it.name to listOf(it.calories, it.proteinGrams, it.fatGrams, it.carbGrams) }) },
             modifier = Modifier.fillMaxWidth()
         ) {
             Text("Submit")
