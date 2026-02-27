@@ -33,9 +33,9 @@ class MealRepositoryTest {
         val photoUri = "content://photo/123"
         val description = "Lunch"
         val components = listOf(
-            "Chicken" to 300,
-            "Rice" to 200,
-            "Salad" to 50
+            "Chicken" to listOf(300, 30, 10, 0),
+            "Rice" to listOf(200, 5, 1, 40),
+            "Salad" to listOf(50, 2, 3, 10)
         )
 
         val mealId = repository.saveMeal(photoUri, description, components)
@@ -58,11 +58,11 @@ class MealRepositoryTest {
 
     @Test
     fun getAllMeals_returnsMealsSortedByTimestamp() = runBlocking {
-        repository.saveMeal("photo1", "Meal 1", listOf("A" to 100))
+        repository.saveMeal("photo1", "Meal 1", listOf("A" to listOf(100, 10, 5, 5)))
         Thread.sleep(10)
-        repository.saveMeal("photo2", "Meal 2", listOf("B" to 200))
+        repository.saveMeal("photo2", "Meal 2", listOf("B" to listOf(200, 20, 10, 10)))
         Thread.sleep(10)
-        repository.saveMeal("photo3", "Meal 3", listOf("C" to 300))
+        repository.saveMeal("photo3", "Meal 3", listOf("C" to listOf(300, 30, 15, 15)))
 
         val meals = repository.getAllMeals()
 
@@ -74,7 +74,7 @@ class MealRepositoryTest {
 
     @Test
     fun getMealById_returnsCorrectMeal() = runBlocking {
-        val mealId = repository.saveMeal("photo", "Dinner", listOf("Beef" to 500))
+        val mealId = repository.saveMeal("photo", "Dinner", listOf("Beef" to listOf(500, 50, 25, 0)))
 
         val meal = repository.getMealById(mealId)
 
@@ -91,7 +91,7 @@ class MealRepositoryTest {
 
     @Test
     fun deleteMeal_removesMealAndComponents() = runBlocking {
-        val mealId = repository.saveMeal("photo", "Lunch", listOf("A" to 100))
+        val mealId = repository.saveMeal("photo", "Lunch", listOf("A" to listOf(100, 10, 5, 5)))
 
         repository.deleteMeal(mealId)
 
@@ -111,7 +111,7 @@ class MealRepositoryTest {
 
     @Test
     fun saveMeal_withManyComponents_works() = runBlocking {
-        val manyComponents = (1..100).map { "Component $it" to it * 10 }
+        val manyComponents = (1..100).map { "Component $it" to listOf(it * 10, it, it / 2, it) }
         val mealId = repository.saveMeal("photo", "Many components", manyComponents)
 
         val meal = repository.getMealById(mealId)
@@ -125,7 +125,11 @@ class MealRepositoryTest {
         val mealId = repository.saveMeal(
             "photo",
             "Test",
-            listOf("Apple" to 100, "Banana" to 150, "Orange" to 80)
+            listOf(
+                "Apple" to listOf(100, 0, 0, 25),
+                "Banana" to listOf(150, 1, 0, 38),
+                "Orange" to listOf(80, 1, 0, 20)
+            )
         )
 
         val meal = repository.getMealById(mealId)

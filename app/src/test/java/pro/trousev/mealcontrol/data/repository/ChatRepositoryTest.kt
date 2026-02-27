@@ -22,7 +22,8 @@ class ChatRepositoryTest {
         database = TestDatabaseFactory.createInMemory(RuntimeEnvironment.getApplication())
         repository = ChatRepository(
             database.conversationDao(),
-            database.messageDao()
+            database.messageDao(),
+            database.userSettingsDao()
         )
     }
 

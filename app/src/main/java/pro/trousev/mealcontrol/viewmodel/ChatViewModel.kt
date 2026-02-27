@@ -16,7 +16,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MealControlDatabase.getDatabase(application)
     private val repository = ChatRepository(
         database.conversationDao(),
-        database.messageDao()
+        database.messageDao(),
+        database.userSettingsDao()
     )
 
     private val _conversations = MutableStateFlow<List<ConversationWithLastMessage>>(emptyList())
@@ -24,6 +25,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _currentConversation = MutableStateFlow<ConversationWithMessages?>(null)
     val currentConversation: StateFlow<ConversationWithMessages?> = _currentConversation.asStateFlow()
+
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     init {
         loadConversations()
@@ -50,9 +54,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun sendMessage(conversationId: Long, content: String) {
         viewModelScope.launch {
+            _isLoading.value = true
             repository.sendMessage(conversationId, content)
             loadConversation(conversationId)
             loadConversations()
+            _isLoading.value = false
         }
     }
 

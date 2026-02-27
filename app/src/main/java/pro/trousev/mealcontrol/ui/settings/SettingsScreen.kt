@@ -257,6 +257,22 @@ fun SettingsScreen(
             ResultsCard(calculation = formState.calculation!!)
         }
 
+        HorizontalDivider()
+
+        Text(
+            text = "Application",
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        OutlinedTextField(
+            value = formState.openAiApiKey,
+            onValueChange = { viewModel.updateOpenAiApiKey(it) },
+            label = { Text("OpenAI API Key") },
+            modifier = Modifier.fillMaxWidth(),
+            supportingText = { Text("Required for chat functionality") },
+            singleLine = true
+        )
+
         Spacer(modifier = Modifier.height(16.dp))
     }
 }
