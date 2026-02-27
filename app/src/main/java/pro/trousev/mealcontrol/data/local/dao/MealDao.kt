@@ -13,7 +13,7 @@ import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 interface MealDao {
     @Transaction
     @Query("SELECT * FROM meals ORDER BY timestamp DESC")
-    fun getAllMealsWithComponents(): List<MealWithComponents>
+    suspend fun getAllMealsWithComponents(): List<MealWithComponents>
 
     @Transaction
     @Query("SELECT * FROM meals WHERE id = :mealId")

@@ -1,0 +1,23 @@
+#!/bin/bash
+set -e
+
+cd /home/trousev/src/MealControl
+
+echo "Building..."
+export JAVA_HOME=/opt/android-studio/jbr
+./gradlew clean assembleDebug
+
+if [ $? -eq 0 ]; then
+    echo "Build successful! Installing..."
+    adb install -r app/build/outputs/apk/debug/app-debug.apk
+    
+    echo "Launching app..."
+    adb shell am start -n pro.trousev.mealcontrol/.MainActivity
+    
+    echo "Starting logcat (Ctrl+C to exit)..."
+    adb logcat -c
+    adb logcat | grep -E "mealcontrol|Activity|ViewModel"
+else
+    echo "Build failed!"
+    exit 1
+fi

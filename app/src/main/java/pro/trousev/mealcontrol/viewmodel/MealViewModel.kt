@@ -19,11 +19,15 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
     val meals: StateFlow<List<MealWithComponents>> = _meals.asStateFlow()
 
     init {
-        loadMeals()
+        viewModelScope.launch {
+            loadMeals()
+        }
     }
 
     fun loadMeals() {
-        _meals.value = repository.getAllMeals()
+        viewModelScope.launch {
+            _meals.value = repository.getAllMeals()
+        }
     }
 
     fun saveMeal(

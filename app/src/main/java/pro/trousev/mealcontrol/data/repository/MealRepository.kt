@@ -7,7 +7,7 @@ import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 
 class MealRepository(private val mealDao: MealDao) {
 
-    fun getAllMeals(): List<MealWithComponents> {
+    suspend fun getAllMeals(): List<MealWithComponents> {
         return mealDao.getAllMealsWithComponents()
     }
 
