@@ -1,0 +1,49 @@
+#!/bin/bash
+cd "$(dirname "$0")/.."
+
+if [ -f .env ]; then
+    source .env
+fi
+
+export JAVA_HOME
+export ANDROID_HOME
+
+if [ -n "$1" ]; then
+    ./gradlew test --tests "$1"
+else
+    ./gradlew test
+fi
+test_result=$?
+
+echo ""
+echo "Test Results:"
+echo "============"
+
+total=0
+passed=0
+failed=0
+skipped=0
+
+for xml in app/build/test-results/testDebugUnitTest/*.xml; do
+    if [ -f "$xml" ]; then
+        tests=$(grep -oP '(?<=tests=")[^"]+' "$xml" | head -1)
+        failures=$(grep -oP '(?<=failures=")[^"]+' "$xml" | head -1)
+        skipped=$(grep -oP '(?<=skipped=")[^"]+' "$xml" | head -1)
+        
+        [ -z "$tests" ] && tests=0
+        [ -z "$failures" ] && failures=0
+        [ -z "$skipped" ] && skipped=0
+        
+        total=$((total + tests))
+        passed=$((passed + tests - failures - skipped))
+        failed=$((failed + failures))
+        skipped=$((skipped + skipped))
+    fi
+done
+
+echo "Tests:  $total"
+echo "Passed: $passed"
+echo "Failed: $failed"
+echo "Skipped: $skipped"
+
+exit $test_result
