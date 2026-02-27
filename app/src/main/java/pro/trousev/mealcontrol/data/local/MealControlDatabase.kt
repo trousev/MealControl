@@ -24,7 +24,7 @@ import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
         MessageEntity::class,
         UserSettingsEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class MealControlDatabase : RoomDatabase() {
@@ -47,6 +47,12 @@ abstract class MealControlDatabase : RoomDatabase() {
 
         private val MIGRATION_3_4 = object : Migration(3, 4) {
             override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE meal_components ADD COLUMN weightGrams INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE user_settings ADD COLUMN openAiApiKey TEXT NOT NULL DEFAULT ''")
             }
         }
@@ -58,7 +64,7 @@ abstract class MealControlDatabase : RoomDatabase() {
                     MealControlDatabase::class.java,
                     "meal_control_database"
                 )
-                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                 INSTANCE = instance
                 instance

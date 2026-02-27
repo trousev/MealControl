@@ -18,7 +18,7 @@ class MealRepository(private val mealDao: MealDao) {
     suspend fun saveMeal(
         photoUri: String,
         description: String,
-        components: List<Pair<String, List<Int>>>
+        components: List<Triple<String, Int, List<Int>>>
     ): Long {
         val timestamp = System.currentTimeMillis()
         val meal = MealEntity(
@@ -28,10 +28,11 @@ class MealRepository(private val mealDao: MealDao) {
         )
         val mealId = mealDao.insertMeal(meal)
 
-        val componentEntities = components.map { (name, values) ->
+        val componentEntities = components.map { (name, weight, values) ->
             MealComponentEntity(
                 mealId = mealId,
                 name = name,
+                weightGrams = weight,
                 calories = values.getOrElse(0) { 0 },
                 proteinGrams = values.getOrElse(1) { 0 },
                 fatGrams = values.getOrElse(2) { 0 },
