@@ -111,7 +111,6 @@ class MealRepositoryTest {
 
     @Test
     fun saveMeal_withManyComponents_works() = runBlocking {
-<<<<<<< HEAD
         val manyComponents = (1..100).map { Triple("Component $it", it * 10, listOf(it * 10, it, it, it)) }
         val mealId = repository.saveMeal("photo", "Many components", manyComponents)
 
