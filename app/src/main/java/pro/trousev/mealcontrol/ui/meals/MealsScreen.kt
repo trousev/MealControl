@@ -30,6 +30,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -72,10 +73,10 @@ fun MealsScreen(
     val targetFat = settingsFormState.calculation?.fatGrams ?: 0
     val targetCarbs = settingsFormState.calculation?.carbGrams ?: 0
 
-    val remainingCalories = (targetCalories - consumedCalories).coerceAtLeast(0)
-    val remainingProtein = (targetProtein - consumedProtein).coerceAtLeast(0)
-    val remainingFat = (targetFat - consumedFat).coerceAtLeast(0)
-    val remainingCarbs = (targetCarbs - consumedCarbs).coerceAtLeast(0)
+    val remainingCalories = targetCalories - consumedCalories
+    val remainingProtein = targetProtein - consumedProtein
+    val remainingFat = targetFat - consumedFat
+    val remainingCarbs = targetCarbs - consumedCarbs
 
     Scaffold(
         modifier = modifier,
@@ -169,26 +170,28 @@ private fun DailyBudgetCard(
                 color = MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(modifier = Modifier.height(8.dp))
+            val overColor = MaterialTheme.colorScheme.error
+
             Text(
-                text = "$remainingCalories / $targetCalories kcal left",
+                text = if (remainingCalories >= 0) "$remainingCalories / $targetCalories kcal left" else "${-remainingCalories} / $targetCalories kcal over",
                 style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (remainingCalories < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "$remainingProtein / ${targetProtein}g protein left",
+                text = if (remainingProtein >= 0) "$remainingProtein / ${targetProtein}g protein left" else "${-remainingProtein} / ${targetProtein}g protein over",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (remainingProtein < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
-                text = "$remainingFat / ${targetFat}g fat left",
+                text = if (remainingFat >= 0) "$remainingFat / ${targetFat}g fat left" else "${-remainingFat} / ${targetFat}g fat over",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (remainingFat < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
             )
             Text(
-                text = "$remainingCarbs / ${targetCarbs}g carbs left",
+                text = if (remainingCarbs >= 0) "$remainingCarbs / ${targetCarbs}g carbs left" else "${-remainingCarbs} / ${targetCarbs}g carbs over",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = if (remainingCarbs < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }
