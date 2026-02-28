@@ -88,6 +88,7 @@ fun CapturedPhotoScreen(
                 messages = state.messages,
                 currentComponents = state.currentComponents,
                 currentQuestion = state.currentQuestion,
+                mealName = state.mealName,
                 modifier = Modifier.weight(1f)
             )
         }
@@ -106,12 +107,13 @@ fun CapturedPhotoScreen(
         )
 
         ActionButtons(
+            mealName = state.mealName,
             currentComponents = state.currentComponents,
             isLoading = state.isLoading,
             onSubmit = {
                 val components = state.currentComponents
+                val name = state.mealName ?: "Detected Meal"
                 if (components != null) {
-                    val description = "Detected Meal"
                     val mealComponents = components.map {
                         Triple(
                             it.name,
@@ -119,7 +121,7 @@ fun CapturedPhotoScreen(
                             listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG)
                         )
                     }
-                    onSubmit(description, mealComponents)
+                    onSubmit(name, mealComponents)
                 }
             },
             onRetake = {
@@ -171,6 +173,7 @@ private fun ChatContent(
     messages: List<MealDetectionMessage>,
     currentComponents: List<MealComponentDto>?,
     currentQuestion: String?,
+    mealName: String?,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -198,6 +201,13 @@ private fun ChatContent(
         }
 
         if (currentComponents != null && currentComponents.isNotEmpty()) {
+            if (mealName != null) {
+                Text(
+                    text = mealName,
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                )
+            }
             MealComponentsList(
                 components = currentComponents,
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -431,6 +441,7 @@ private fun ChatInput(
 
 @Composable
 private fun ActionButtons(
+    mealName: String?,
     currentComponents: List<MealComponentDto>?,
     isLoading: Boolean,
     onSubmit: () -> Unit,

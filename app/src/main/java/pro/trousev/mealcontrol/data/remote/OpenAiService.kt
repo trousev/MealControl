@@ -64,33 +64,27 @@ class OpenAiService(
     suspend fun detectMealFromImage(
         imageBase64: String,
         promptId: String,
-        chatHistory: List<ChatHistoryItem>,
-        includeImage: Boolean = true
+        lastResponseJson: String? = null,
+        userFollowup: String? = null
     ): Result<MealDetectionResponse> {
         return try {
             val contentItems = mutableListOf<ContentItem>()
 
-            if (includeImage) {
+            if (lastResponseJson != null && userFollowup != null) {
+                contentItems.add(ContentItem(
+                    type = "input_text",
+                    text = "Previous response:\n$lastResponseJson\n\nUser question: $userFollowup"
+                ))
+            } else {
                 val imageContent = ContentItem(
                     type = "input_image",
                     imageUrl = "data:image/jpeg;base64," + imageBase64
                 )
                 contentItems.add(imageContent)
-            }
-
-            val textParts = mutableListOf<String>()
-            for (item in chatHistory) {
-                if (item.isFromUser) {
-                    textParts.add("User: ${item.content}")
-                } else {
-                    textParts.add("AI: ${item.content}")
-                }
-            }
-            
-            if (textParts.isNotEmpty()) {
-                contentItems.add(ContentItem(type = "input_text", text = textParts.joinToString("\n")))
-            } else {
-                contentItems.add(ContentItem(type = "input_text", text = "Please analyze this meal image and identify all food components with their nutritional information."))
+                contentItems.add(ContentItem(
+                    type = "input_text",
+                    text = "Please analyze this meal image and identify all food components with their nutritional information."
+                ))
             }
 
             val inputList = listOf(
@@ -103,7 +97,7 @@ class OpenAiService(
             val requestBody = MealDetectionRequest(
                 model = "gpt-5-mini-2025-08-07",
                 input = inputList,
-                prompt = PromptInfo(id = promptId, version = "3")
+                prompt = PromptInfo(id = promptId, version = "5")
             )
 
             val response: HttpResponse = httpClient.post("https://api.openai.com/v1/responses") {
@@ -210,9 +204,15 @@ data class PromptInfo(
 @Serializable
 data class MealDetectionResponse(
     val id: String? = null,
-    @SerialName("meal_components") val mealComponents: List<MealComponentDto>? = null,
     val output: List<OutputItem>? = null,
     val error: String? = null
+)
+
+@Serializable
+data class MealDetectionResult(
+    val name: String,
+    val components: List<MealComponentDto>,
+    val followup: String
 )
 
 @Serializable
@@ -250,3 +250,23 @@ data class ChatHistoryItem(
     val content: String,
     val isFromUser: Boolean
 )
+
+fun parseMealDetectionResult(response: MealDetectionResponse?): MealDetectionResult? {
+    if (response == null) return null
+    return try {
+        val messageOutput = response.output?.find { it.type == "message" }
+        val responseText = messageOutput?.content?.firstOrNull()?.text 
+            ?: messageOutput?.text
+            ?: return null
+        
+        Log.d(TAG, "responseText length: ${responseText.length}")
+        
+        val json = Json { ignoreUnknownKeys = true }
+        val result = json.decodeFromString<MealDetectionResult>(responseText)
+        Log.d(TAG, "Parsed successfully: name=${result.name}, components=${result.components.size}")
+        result
+    } catch (e: Exception) {
+        Log.e(TAG, "Failed to parse meal detection result: ${e.message}", e)
+        null
+    }
+}

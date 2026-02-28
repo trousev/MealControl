@@ -17,12 +17,15 @@ import pro.trousev.mealcontrol.data.local.entity.MessageEntity
 import pro.trousev.mealcontrol.data.remote.ChatHistoryItem
 import pro.trousev.mealcontrol.data.remote.MealComponentDto
 import pro.trousev.mealcontrol.data.remote.MealDetectionResponse
+import pro.trousev.mealcontrol.data.remote.MealDetectionResult
 import pro.trousev.mealcontrol.data.remote.OpenAiService
+import pro.trousev.mealcontrol.data.remote.parseMealDetectionResult
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.encodeToString
 import java.io.File
 
 private const val TAG = "MealDetection"
@@ -32,6 +35,8 @@ data class MealDetectionState(
     val messages: List<MealDetectionMessage> = emptyList(),
     val currentComponents: List<MealComponentDto>? = null,
     val currentQuestion: String? = null,
+    val mealName: String? = null,
+    val lastResponseJson: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val conversationId: Long = -1
@@ -77,7 +82,7 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
         }
     }
 
-    private suspend fun analyzePhoto() {
+    private suspend fun analyzePhoto(userFollowup: String? = null) {
         val settings = userSettingsDao.getSettings()
         val apiKey = settings?.openAiApiKey ?: ""
 
@@ -91,34 +96,37 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
         }
 
         try {
-            val chatHistory = _state.value.messages.map {
-                ChatHistoryItem(it.content, it.isFromUser)
-            }
-
             val isFirstMessage = _state.value.messages.isEmpty()
-            Log.d(TAG, "isFirstMessage=$isFirstMessage, history size=${chatHistory.size}")
+            Log.d(TAG, "isFirstMessage=$isFirstMessage, lastResponseJson=${_state.value.lastResponseJson != null}")
 
             val openAiService = OpenAiService(apiKey)
-            val imageBase64 = withContext(Dispatchers.IO) {
-                val file = File(_state.value.photoUri)
-                Log.d(TAG, "Reading image file: ${_state.value.photoUri}, size: ${file.length()}")
-                Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
-            }
             
-            val result = openAiService.detectMealFromImage(
-                imageBase64 = imageBase64,
-                promptId = promptId,
-                chatHistory = chatHistory,
-                includeImage = true
-            )
+            val result = if (isFirstMessage) {
+                val imageBase64 = withContext(Dispatchers.IO) {
+                    val file = File(_state.value.photoUri)
+                    Log.d(TAG, "Reading image file: ${_state.value.photoUri}, size: ${file.length()}")
+                    Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+                }
+                
+                openAiService.detectMealFromImage(
+                    imageBase64 = imageBase64,
+                    promptId = promptId,
+                    lastResponseJson = null,
+                    userFollowup = null
+                )
+            } else {
+                openAiService.detectMealFromImage(
+                    imageBase64 = "",
+                    promptId = promptId,
+                    lastResponseJson = _state.value.lastResponseJson,
+                    userFollowup = userFollowup
+                )
+            }
 
             when {
                 result.isSuccess -> {
                     val response = result.getOrNull()
-                    Log.d(TAG, "Response success: components=${response?.mealComponents?.size}, output=${response?.output?.size}")
-                    response?.output?.forEachIndexed { index, out ->
-                        Log.d(TAG, "Output[$index]: type=${out.type}, status=${out.status}, content=${out.message?.content?.take(200)}")
-                    }
+                    Log.d(TAG, "Response success: output=${response?.output?.size}")
                     processResponse(response)
                 }
                 result.isFailure -> {
@@ -142,55 +150,35 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
     private fun processResponse(response: MealDetectionResponse?) {
         Log.d(TAG, "processResponse called with response=$response")
         
-        // Debug: log all output items
-        response?.output?.forEachIndexed { index, out ->
-            Log.d(TAG, "Output[$index]: type=${out.type}, text=${out.text}, content=${out.content}, message=${out.message}")
-            out.content?.forEachIndexed { cindex, content ->
-                Log.d(TAG, "  Content[$cindex]: type=${content.type}, text=${content.text}")
-            }
+        val result = parseMealDetectionResult(response)
+        
+        if (result == null) {
+            Log.e(TAG, "Failed to parse meal detection result")
+            _state.value = _state.value.copy(
+                isLoading = false,
+                error = "Failed to parse meal detection response"
+            )
+            return
         }
         
-        val components = response?.mealComponents
-        // The actual text is in output[1].content[0].text
-        val messageOutput = response?.output?.find { it.type == "message" }
-        val responseText = messageOutput?.content?.firstOrNull()?.text 
-            ?: messageOutput?.text
-            ?: ""
+        val mealName = result.name
+        val allComponents = result.components
+        val followup = result.followup
         
-        // Try to parse components from JSON response text
-        val parsedComponents = parseComponentsFromJson(responseText)
-        val allComponents = components ?: parsedComponents
+        Log.d(TAG, "Parsed: name=$mealName, components=${allComponents.size}, followup='$followup'")
         
-        Log.d(TAG, "Components: ${allComponents?.size}, Response text: '${responseText.take(100)}'")
-        
-        val question = if (responseText.isNotEmpty()) {
-            parseClarificationQuestion(responseText)
-        } else if (allComponents == null || allComponents.isEmpty()) {
-            "Please provide more details about your meal."
-        } else {
-            null
-        }
-
-        val debugInfo = if (response != null) {
-            "components=${allComponents?.size ?: "null"}, response='$responseText'"
-        } else {
-            "response is null"
-        }
-        
-        Log.d(TAG, "question=$question, hasComponents=${allComponents?.isNotEmpty()}")
-        Log.d(TAG, "Full responseText for history: $responseText")
-
-        val messageContent = if (question != null) {
-            question
-        } else if (allComponents != null && allComponents.isNotEmpty()) {
+        val messageContent = if (followup.isNotEmpty()) {
+            followup
+        } else if (allComponents.isNotEmpty()) {
             buildString {
-                append("Detected ${allComponents.size} meal components:\n")
+                append("Detected: $mealName\n\n")
+                append("Components (${allComponents.size}):\n")
                 allComponents.forEachIndexed { index, comp ->
                     append("${index + 1}. ${comp.name} - ${comp.weightG}g (${comp.energyKcal} kcal)\n")
                 }
             }
         } else {
-            responseText.ifEmpty { "Could not detect meal components. Please try again or provide more details." }
+            "Could not detect meal components. Please try again or provide more details."
         }
 
         val botMessage = MessageEntity(
@@ -204,7 +192,8 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
             messageDao.insertMessage(botMessage)
         }
 
-        if (allComponents != null && allComponents.isNotEmpty()) {
+        if (allComponents.isNotEmpty()) {
+            val resultJson = Json.encodeToString(MealDetectionResult.serializer(), result)
             _state.value = _state.value.copy(
                 messages = _state.value.messages + MealDetectionMessage(
                     content = messageContent,
@@ -212,19 +201,23 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
                     timestamp = System.currentTimeMillis()
                 ),
                 currentComponents = allComponents,
-                currentQuestion = null,
+                currentQuestion = if (followup.isNotEmpty()) followup else null,
+                mealName = mealName,
+                lastResponseJson = resultJson,
                 isLoading = false,
                 error = null
             )
-        } else if (question != null) {
+        } else if (followup.isNotEmpty()) {
             _state.value = _state.value.copy(
                 messages = _state.value.messages + MealDetectionMessage(
                     content = messageContent,
                     isFromUser = false,
                     timestamp = System.currentTimeMillis()
                 ),
-                currentQuestion = question,
+                currentQuestion = followup,
                 currentComponents = null,
+                mealName = null,
+                lastResponseJson = _state.value.lastResponseJson,
                 isLoading = false,
                 error = null
             )
@@ -237,8 +230,9 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
                 ),
                 currentQuestion = null,
                 currentComponents = null,
+                mealName = null,
                 isLoading = false,
-                error = "Debug: $debugInfo"
+                error = "Could not detect meal"
             )
         }
     }
@@ -283,7 +277,7 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
                 currentComponents = null
             )
 
-            analyzePhoto()
+            analyzePhoto(userFollowup = text)
         }
     }
 
