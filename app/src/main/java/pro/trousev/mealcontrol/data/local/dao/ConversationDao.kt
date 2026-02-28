@@ -13,6 +13,9 @@ interface ConversationDao {
     @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
     suspend fun getAllConversations(): List<ConversationEntity>
 
+    @Query("SELECT * FROM conversations WHERE isMealDetection = 0 ORDER BY createdAt DESC")
+    suspend fun getChatConversations(): List<ConversationEntity>
+
     @Transaction
     @Query("SELECT * FROM conversations ORDER BY createdAt DESC")
     fun getAllConversationsWithMessages(): List<ConversationWithMessages>

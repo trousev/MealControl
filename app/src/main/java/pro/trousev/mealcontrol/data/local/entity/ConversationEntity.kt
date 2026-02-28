@@ -8,5 +8,6 @@ data class ConversationEntity(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val title: String,
-    val createdAt: Long
+    val createdAt: Long,
+    val isMealDetection: Boolean = false
 )
