@@ -171,10 +171,9 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
             followup
         } else if (allComponents.isNotEmpty()) {
             buildString {
-                append("Detected: $mealName\n\n")
                 append("Components (${allComponents.size}):\n")
                 allComponents.forEachIndexed { index, comp ->
-                    append("${index + 1}. ${comp.name} - ${comp.weightG}g (${comp.energyKcal} kcal)\n")
+                    append("${index + 1}. ${comp.name} - ${comp.weightG.toInt()}g (${comp.energyKcal.toInt()} kcal)\n")
                 }
             }
         } else {
@@ -298,13 +297,16 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
                         val getInt: (String) -> Int = { key ->
                             (obj[key] as? JsonPrimitive)?.content?.toIntOrNull() ?: 0
                         }
+                        val getDouble: (String) -> Double = { key ->
+                            (obj[key] as? JsonPrimitive)?.content?.toDoubleOrNull() ?: 0.0
+                        }
                         MealComponentDto(
                             name = getString("name"),
-                            weightG = getInt("weight_g"),
-                            energyKcal = getInt("energy_kcal"),
-                            fatG = getInt("fat_g"),
-                            proteinG = getInt("protein_g"),
-                            carbsG = getInt("carbs_g")
+                            weightG = getDouble("weight_g"),
+                            energyKcal = getDouble("energy_kcal"),
+                            fatG = getDouble("fat_g"),
+                            proteinG = getDouble("protein_g"),
+                            carbsG = getDouble("carbs_g")
                         )
                     } else null
                 }

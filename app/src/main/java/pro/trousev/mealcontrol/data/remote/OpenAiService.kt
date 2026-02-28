@@ -239,11 +239,11 @@ data class MessageContent(
 @Serializable
 data class MealComponentDto(
     val name: String,
-    @SerialName("weight_g") val weightG: Int,
-    @SerialName("energy_kcal") val energyKcal: Int,
-    @SerialName("fat_g") val fatG: Int,
-    @SerialName("protein_g") val proteinG: Int,
-    @SerialName("carbs_g") val carbsG: Int
+    @SerialName("weight_g") val weightG: Double,
+    @SerialName("energy_kcal") val energyKcal: Double,
+    @SerialName("fat_g") val fatG: Double,
+    @SerialName("protein_g") val proteinG: Double,
+    @SerialName("carbs_g") val carbsG: Double
 )
 
 data class ChatHistoryItem(
