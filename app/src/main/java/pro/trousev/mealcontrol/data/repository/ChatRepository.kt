@@ -27,7 +27,7 @@ class ChatRepository(
 ) {
 
     suspend fun getAllConversations(): List<ConversationWithLastMessage> {
-        val conversations = conversationDao.getAllConversations()
+        val conversations = conversationDao.getChatConversations()
         return conversations.map { conversation ->
             val lastMessage = messageDao.getLastMessage(conversation.id)
             ConversationWithLastMessage(conversation, lastMessage)
