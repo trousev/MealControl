@@ -112,13 +112,13 @@ fun CapturedPhotoScreen(
             isLoading = state.isLoading,
             onSubmit = {
                 val components = state.currentComponents
-                val name = state.mealName ?: "Detected Meal"
-                if (components != null) {
+                val name = state.mealName
+                if (components != null && name != null) {
                     val mealComponents = components.map {
                         Triple(
                             it.name,
-                            it.weightG,
-                            listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG)
+                            it.weightG.toInt(),
+                            listOf(it.energyKcal.toInt(), it.proteinG.toInt(), it.fatG.toInt(), it.carbsG.toInt())
                         )
                     }
                     onSubmit(name, mealComponents)
@@ -298,16 +298,16 @@ private fun MealComponentsList(
                     verticalAlignment = Alignment.Top
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text(text = "${component.weightG}g of ${component.name}")
+                        Text(text = "${component.weightG.toInt()}g of ${component.name}")
                         Text(
-                            text = "${component.proteinG}g prot, ${component.fatG}g fat, ${component.carbsG}g carb",
+                            text = "${component.proteinG.toInt()}g prot, ${component.fatG.toInt()}g fat, ${component.carbsG.toInt()}g carb",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
-                            text = "${component.energyKcal}",
+                            text = "${component.energyKcal.toInt()}",
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
