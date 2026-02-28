@@ -19,7 +19,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -150,7 +150,7 @@ fun ScanMealScreen(
                         modifier = Modifier.size(72.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Star,
+                            imageVector = Icons.Default.Add,
                             contentDescription = "Capture",
                             modifier = Modifier.size(36.dp)
                         )
