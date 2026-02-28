@@ -70,6 +70,7 @@ dependencies {
     implementation("io.ktor:ktor-serialization-kotlinx-json")
     implementation("io.ktor:ktor-client-logging")
     implementation(libs.kotlinx.serialization.json)
+    implementation(libs.androidx.exifinterface)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.room.ktx)

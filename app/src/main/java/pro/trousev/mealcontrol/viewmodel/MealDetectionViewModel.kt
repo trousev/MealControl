@@ -20,6 +20,7 @@ import pro.trousev.mealcontrol.data.remote.MealDetectionResponse
 import pro.trousev.mealcontrol.data.remote.MealDetectionResult
 import pro.trousev.mealcontrol.data.remote.OpenAiService
 import pro.trousev.mealcontrol.data.remote.parseMealDetectionResult
+import pro.trousev.mealcontrol.util.ImageCompression
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -103,9 +104,9 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
             
             val result = if (isFirstMessage) {
                 val imageBase64 = withContext(Dispatchers.IO) {
-                    val file = File(_state.value.photoUri)
-                    Log.d(TAG, "Reading image file: ${_state.value.photoUri}, size: ${file.length()}")
-                    Base64.encodeToString(file.readBytes(), Base64.NO_WRAP)
+                    val compressedBytes = ImageCompression.compressImage(_state.value.photoUri)
+                    Log.d(TAG, "Compressed image from ${File(_state.value.photoUri).length()} to ${compressedBytes.size} bytes")
+                    Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
                 }
                 
                 openAiService.detectMealFromImage(
