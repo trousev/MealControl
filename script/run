@@ -20,7 +20,7 @@ if [ $? -eq 0 ]; then
     
     echo "Starting logcat (Ctrl+C to exit)..."
     adb logcat -c
-    adb logcat | grep -E "mealcontrol|Activity|ViewModel"
+    adb logcat | grep "MealControl|MealDetection"
 else
     echo "Build failed!"
     exit 1
