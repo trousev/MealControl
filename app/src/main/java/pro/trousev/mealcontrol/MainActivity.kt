@@ -165,6 +165,9 @@ fun MealControlApp() {
                             viewModel = chatViewModel,
                             onConversationClick = { conversationId ->
                                 selectedConversationId = conversationId
+                            },
+                            onNewConversation = { newId ->
+                                selectedConversationId = newId
                             }
                         )
                     }
