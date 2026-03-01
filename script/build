@@ -8,4 +8,30 @@ fi
 
 export JAVA_HOME
 export ANDROID_HOME
-./gradlew assembleDebug
+
+VARIANT="debug"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --release)
+            VARIANT="release"
+            shift
+            ;;
+        --debug)
+            VARIANT="debug"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--debug|--release]"
+            exit 1
+            ;;
+    esac
+done
+
+echo "Building ${VARIANT} variant..."
+
+if [ "$VARIANT" = "debug" ]; then
+    ./gradlew assembleDevDebug
+else
+    ./gradlew assembleProdRelease
+fi
