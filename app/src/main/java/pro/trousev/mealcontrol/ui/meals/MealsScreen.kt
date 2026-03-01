@@ -28,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,7 +42,6 @@ import pro.trousev.mealcontrol.viewmodel.MealViewModel
 import pro.trousev.mealcontrol.viewmodel.SettingsViewModel
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
@@ -54,16 +54,8 @@ fun MealsScreen(
     modifier: Modifier = Modifier
 ) {
     val meals by mealViewModel.meals.collectAsState()
+    val todayMeals by mealViewModel.todayMeals.collectAsState()
     val settingsFormState by settingsViewModel.formState.collectAsState()
-
-    val todayMeals = meals.filter { meal ->
-        val mealDate = Calendar.getInstance().apply {
-            timeInMillis = meal.meal.timestamp
-        }
-        val today = Calendar.getInstance()
-        mealDate.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
-                mealDate.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-    }
 
     val consumedCalories = todayMeals.flatMap { it.components }.sumOf { it.calories }
     val consumedProtein = todayMeals.flatMap { it.components }.sumOf { it.proteinGrams }
@@ -131,7 +123,7 @@ fun MealsScreen(
                     }
                 }
             } else {
-                items(meals) { mealWithComponents ->
+                items(meals, key = { it.meal.id }) { mealWithComponents ->
                     MealCard(
                         mealWithComponents = mealWithComponents,
                         onClick = { onMealClick(mealWithComponents) }
@@ -214,7 +206,7 @@ private fun MealCard(
     val totalProtein = components.sumOf { it.proteinGrams }
     val totalFat = components.sumOf { it.fatGrams }
     val totalCarbs = components.sumOf { it.carbGrams }
-    val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.US)
+    val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.US) }
 
     Card(
         modifier = modifier
