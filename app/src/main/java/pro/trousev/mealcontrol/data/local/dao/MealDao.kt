@@ -27,4 +27,10 @@ interface MealDao {
 
     @Query("DELETE FROM meals WHERE id = :mealId")
     suspend fun deleteMeal(mealId: Long)
+
+    @Query("UPDATE meals SET description = :description, timestamp = :timestamp WHERE id = :mealId")
+    suspend fun updateMeal(mealId: Long, description: String, timestamp: Long)
+
+    @Query("DELETE FROM meal_components WHERE mealId = :mealId")
+    suspend fun deleteComponentsByMealId(mealId: Long)
 }

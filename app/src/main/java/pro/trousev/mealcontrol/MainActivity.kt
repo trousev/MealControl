@@ -25,10 +25,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.ui.chat.ChatScreen
 import pro.trousev.mealcontrol.ui.chat.ConversationsListScreen
 import pro.trousev.mealcontrol.ui.meals.MealsScreen
-import pro.trousev.mealcontrol.ui.scanmeal.CapturedPhotoScreen
+import pro.trousev.mealcontrol.ui.scanmeal.MealEditScreen
 import pro.trousev.mealcontrol.ui.scanmeal.ScanMealScreen
 import pro.trousev.mealcontrol.ui.settings.SettingsScreen
 import pro.trousev.mealcontrol.ui.theme.MealControlTheme
@@ -53,6 +54,7 @@ fun MealControlApp() {
     var currentTab by rememberSaveable { mutableStateOf(AppTab.MEALS) }
     var capturedPhotoUri by rememberSaveable { mutableStateOf<String?>(null) }
     var showCamera by rememberSaveable { mutableStateOf(false) }
+    var editingMeal by rememberSaveable { mutableStateOf<MealWithComponents?>(null) }
     var selectedConversationId by rememberSaveable { mutableLongStateOf(-1L) }
 
     val mealViewModel: MealViewModel = viewModel()
@@ -76,6 +78,7 @@ fun MealControlApp() {
                             currentTab = tab
                             capturedPhotoUri = null
                             showCamera = false
+                            editingMeal = null
                             selectedConversationId = -1L
                         }
                     )
@@ -91,10 +94,30 @@ fun MealControlApp() {
             when (currentTab) {
                 AppTab.MEALS -> {
                     when {
+                        editingMeal != null -> {
+                            MealEditScreen(
+                                photoUri = editingMeal!!.meal.photoUri,
+                                existingMeal = editingMeal,
+                                onUpdate = { description, components ->
+                                    mealViewModel.updateMeal(
+                                        mealId = editingMeal!!.meal.id,
+                                        description = description,
+                                        components = components,
+                                        timestamp = editingMeal!!.meal.timestamp
+                                    )
+                                    editingMeal = null
+                                },
+                                onDelete = {
+                                    mealViewModel.deleteMeal(editingMeal!!.meal.id)
+                                    editingMeal = null
+                                },
+                                onRetake = { editingMeal = null }
+                            )
+                        }
                         capturedPhotoUri != null -> {
-                            CapturedPhotoScreen(
+                            MealEditScreen(
                                 photoUri = capturedPhotoUri!!,
-                                onSubmit = { description, components ->
+                                onUpdate = { description, components ->
                                     mealViewModel.saveMeal(
                                         photoUri = capturedPhotoUri!!,
                                         description = description,
@@ -103,6 +126,7 @@ fun MealControlApp() {
                                     capturedPhotoUri = null
                                     showCamera = false
                                 },
+                                onDelete = { },
                                 onRetake = { capturedPhotoUri = null }
                             )
                         }
@@ -120,6 +144,9 @@ fun MealControlApp() {
                                 settingsViewModel = settingsViewModel,
                                 onAddMealClick = {
                                     showCamera = true
+                                },
+                                onMealClick = { meal ->
+                                    editingMeal = meal
                                 }
                             )
                         }

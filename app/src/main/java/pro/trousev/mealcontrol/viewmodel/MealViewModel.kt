@@ -33,7 +33,7 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
     fun saveMeal(
         photoUri: String,
         description: String,
-        components: List<Triple<String, Int, List<Int>>>
+        components: List<Triple<String, Double, List<Number>>>
     ) {
         viewModelScope.launch {
             repository.saveMeal(photoUri, description, components)
@@ -44,6 +44,18 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
     fun deleteMeal(mealId: Long) {
         viewModelScope.launch {
             repository.deleteMeal(mealId)
+            loadMeals()
+        }
+    }
+
+    fun updateMeal(
+        mealId: Long,
+        description: String,
+        components: List<Triple<String, Double, List<Number>>>,
+        timestamp: Long
+    ) {
+        viewModelScope.launch {
+            repository.updateMeal(mealId, description, components, timestamp)
             loadMeals()
         }
     }

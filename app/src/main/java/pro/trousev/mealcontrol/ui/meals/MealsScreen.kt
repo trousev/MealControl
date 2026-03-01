@@ -1,6 +1,7 @@
 package pro.trousev.mealcontrol.ui.meals
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +50,7 @@ fun MealsScreen(
     mealViewModel: MealViewModel = viewModel(),
     settingsViewModel: SettingsViewModel = viewModel(),
     onAddMealClick: () -> Unit,
+    onMealClick: (MealWithComponents) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val meals by mealViewModel.meals.collectAsState()
@@ -130,7 +132,10 @@ fun MealsScreen(
                 }
             } else {
                 items(meals) { mealWithComponents ->
-                    MealCard(mealWithComponents = mealWithComponents)
+                    MealCard(
+                        mealWithComponents = mealWithComponents,
+                        onClick = { onMealClick(mealWithComponents) }
+                    )
                 }
             }
 
@@ -200,6 +205,7 @@ private fun DailyBudgetCard(
 @Composable
 private fun MealCard(
     mealWithComponents: MealWithComponents,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val meal = mealWithComponents.meal
@@ -211,7 +217,9 @@ private fun MealCard(
     val dateFormat = SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.US)
 
     Card(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Row(
             modifier = Modifier
