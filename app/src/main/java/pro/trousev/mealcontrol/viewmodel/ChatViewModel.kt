@@ -45,10 +45,11 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun createConversation() {
+    fun createConversation(onCreated: (Long) -> Unit) {
         viewModelScope.launch {
-            repository.createConversation()
+            val newId = repository.createConversation()
             loadConversations()
+            onCreated(newId)
         }
     }
 
