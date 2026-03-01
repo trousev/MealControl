@@ -9,14 +9,49 @@ fi
 
 export JAVA_HOME
 export ANDROID_HOME
-./gradlew clean assembleDebug
+
+VARIANT="debug"
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --release)
+            VARIANT="release"
+            shift
+            ;;
+        --debug)
+            VARIANT="debug"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--debug|--release]"
+            exit 1
+            ;;
+    esac
+done
+
+echo "Building ${VARIANT} variant..."
+
+if [ "$VARIANT" = "debug" ]; then
+    ./gradlew clean assembleDevDebug
+else
+    ./gradlew clean assembleProdRelease
+fi
 
 if [ $? -eq 0 ]; then
     echo "Build successful! Installing..."
-    adb install -r app/build/outputs/apk/debug/app-debug.apk
+    
+    if [ "$VARIANT" = "debug" ]; then
+        APK_PATH="app/build/outputs/apk/dev/debug/app-dev-debug.apk"
+        ACTIVITY="pro.trousev.mealcontrol.debug/.DebugMainActivity"
+    else
+        APK_PATH="app/build/outputs/apk/prod/release/app-prod-release.apk"
+        ACTIVITY="pro.trousev.mealcontrol/.MainActivity"
+    fi
+    
+    adb install -r "$APK_PATH"
     
     echo "Launching app..."
-    adb shell am start -n pro.trousev.mealcontrol/.MainActivity
+    adb shell am start -n "$ACTIVITY"
     
     echo "Starting logcat (Ctrl+C to exit)..."
     adb logcat -c
