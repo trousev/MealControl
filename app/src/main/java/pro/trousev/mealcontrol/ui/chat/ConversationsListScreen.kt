@@ -32,6 +32,7 @@ import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -93,7 +94,7 @@ fun ConversationsListScreen(
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
                 
-                items(conversations) { conversationWithLastMessage ->
+                items(conversations, key = { it.conversation.id }) { conversationWithLastMessage ->
                     ConversationItem(
                         conversationWithLastMessage = conversationWithLastMessage,
                         onClick = { onConversationClick(conversationWithLastMessage.conversation.id) },
@@ -117,7 +118,7 @@ private fun ConversationItem(
 ) {
     val conversation = conversationWithLastMessage.conversation
     val lastMessage = conversationWithLastMessage.lastMessage
-    val dateFormat = SimpleDateFormat("MMM dd", Locale.US)
+    val dateFormat = remember { SimpleDateFormat("MMM dd", Locale.US) }
 
     val dismissState = rememberSwipeToDismissBoxState(
         positionalThreshold = { totalDistance -> totalDistance * 0.75f },

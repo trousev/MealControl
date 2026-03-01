@@ -68,7 +68,7 @@ fun ChatScreen(
 
     LaunchedEffect(conversation?.messages?.size) {
         if (conversation?.messages?.isNotEmpty() == true) {
-            listState.animateScrollToItem(conversation!!.messages.size - 1)
+            listState.animateScrollToItem(conversation?.messages?.size?.minus(1) ?: 0)
         }
     }
 
@@ -104,7 +104,7 @@ fun ChatScreen(
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                items(messages) { message ->
+                items(messages, key = { it.id }) { message ->
                     MessageBubble(message = message)
                 }
             }
@@ -161,7 +161,7 @@ private fun MessageBubble(
     modifier: Modifier = Modifier
 ) {
     val isFromUser = message.isFromUser
-    val dateFormat = SimpleDateFormat("HH:mm", Locale.US)
+    val dateFormat = remember { SimpleDateFormat("HH:mm", Locale.US) }
 
     Column(
         modifier = modifier.fillMaxWidth(),

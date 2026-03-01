@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.Calendar
 
 class MealViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MealControlDatabase.getDatabase(application)
@@ -17,6 +18,9 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _meals = MutableStateFlow<List<MealWithComponents>>(emptyList())
     val meals: StateFlow<List<MealWithComponents>> = _meals.asStateFlow()
+
+    private val _todayMeals = MutableStateFlow<List<MealWithComponents>>(emptyList())
+    val todayMeals: StateFlow<List<MealWithComponents>> = _todayMeals.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -26,7 +30,18 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadMeals() {
         viewModelScope.launch {
-            _meals.value = repository.getAllMeals()
+            val allMeals = repository.getAllMeals()
+            _meals.value = allMeals
+
+            val today = Calendar.getInstance()
+            val filteredMeals = allMeals.filter { meal ->
+                val mealDate = Calendar.getInstance().apply {
+                    timeInMillis = meal.meal.timestamp
+                }
+                mealDate.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+                        mealDate.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
+            }
+            _todayMeals.value = filteredMeals
         }
     }
 
