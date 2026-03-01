@@ -81,7 +81,8 @@ fun MealEditScreen(
                 )
             }
             viewModel.initializeForEdit(photoUri, existingMeal.meal.description, components)
-        } else if (!isEditMode && state.photoUri.isEmpty() && photoUri.isNotEmpty()) {
+        } else if (!isEditMode && photoUri.isNotEmpty()) {
+            viewModel.retake()
             viewModel.initializeWithPhoto(photoUri)
         }
     }
