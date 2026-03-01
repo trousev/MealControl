@@ -48,25 +48,40 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.data.remote.MealComponentDto
 import pro.trousev.mealcontrol.viewmodel.MealDetectionMessage
 import pro.trousev.mealcontrol.viewmodel.MealDetectionViewModel
 import java.io.File
-import java.util.Timer
-import java.util.TimerTask
 
 @Composable
-fun CapturedPhotoScreen(
+fun MealEditScreen(
     photoUri: String,
-    onSubmit: (String, List<Triple<String, Int, List<Int>>>) -> Unit,
+    existingMeal: MealWithComponents? = null,
+    onUpdate: (String, List<Triple<String, Double, List<Number>>>) -> Unit,
+    onDelete: () -> Unit,
     onRetake: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val viewModel: MealDetectionViewModel = viewModel()
     val state by viewModel.state.collectAsState()
 
-    LaunchedEffect(photoUri) {
-        if (state.photoUri.isEmpty() && photoUri.isNotEmpty()) {
+    val isEditMode = existingMeal != null
+
+    LaunchedEffect(existingMeal, photoUri) {
+        if (isEditMode && existingMeal != null) {
+            val components = existingMeal.components.map { component ->
+                MealComponentDto(
+                    name = component.name,
+                    weightG = component.weightGrams.toDouble(),
+                    energyKcal = component.calories.toDouble(),
+                    proteinG = component.proteinGrams.toDouble(),
+                    fatG = component.fatGrams.toDouble(),
+                    carbsG = component.carbGrams.toDouble()
+                )
+            }
+            viewModel.initializeForEdit(photoUri, existingMeal.meal.description, components)
+        } else if (!isEditMode && state.photoUri.isEmpty() && photoUri.isNotEmpty()) {
             viewModel.initializeWithPhoto(photoUri)
         }
     }
@@ -77,7 +92,7 @@ fun CapturedPhotoScreen(
             .imePadding()
             .padding(16.dp)
     ) {
-        if (state.isLoading && state.messages.isEmpty()) {
+        if (state.isLoading && state.messages.isEmpty() && !isEditMode) {
             InitialLoadingState(
                 photoUri = photoUri,
                 modifier = Modifier.weight(1f)
@@ -106,30 +121,53 @@ fun CapturedPhotoScreen(
             modifier = Modifier.padding(vertical = 8.dp)
         )
 
-        ActionButtons(
-            mealName = state.mealName,
-            currentComponents = state.currentComponents,
-            isLoading = state.isLoading,
-            onSubmit = {
-                val components = state.currentComponents
-                val name = state.mealName
-                if (components != null && name != null) {
-                    val mealComponents = components.map {
-                        Triple(
-                            it.name,
-                            it.weightG.toInt(),
-                            listOf(it.energyKcal.toInt(), it.proteinG.toInt(), it.fatG.toInt(), it.carbsG.toInt())
-                        )
+        if (isEditMode) {
+            EditModeButtons(
+                currentComponents = state.currentComponents,
+                isLoading = state.isLoading,
+                onUpdate = {
+                    val components = state.currentComponents
+                    val name = state.mealName ?: existingMeal?.meal?.description ?: "Edited Meal"
+                    if (components != null) {
+                        val mealComponents = components.map {
+                            Triple(
+                                it.name,
+                                it.weightG,
+                                listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG)
+                            )
+                        }
+                        onUpdate(name, mealComponents)
                     }
-                    onSubmit(name, mealComponents)
-                }
-            },
-            onRetake = {
-                viewModel.retake()
-                onRetake()
-            },
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
+                },
+                onDelete = onDelete,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        } else {
+            NewMealButtons(
+                mealName = state.mealName,
+                currentComponents = state.currentComponents,
+                isLoading = state.isLoading,
+                onSubmit = {
+                    val components = state.currentComponents
+                    val name = state.mealName ?: "Detected Meal"
+                    if (components != null) {
+                        val mealComponents = components.map {
+                            Triple(
+                                it.name,
+                                it.weightG,
+                                listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG)
+                            )
+                        }
+                        onUpdate(name, mealComponents)
+                    }
+                },
+                onRetake = {
+                    viewModel.retake()
+                    onRetake()
+                },
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
     }
 }
 
@@ -440,7 +478,38 @@ private fun ChatInput(
 }
 
 @Composable
-private fun ActionButtons(
+private fun EditModeButtons(
+    currentComponents: List<MealComponentDto>?,
+    isLoading: Boolean,
+    onUpdate: () -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val canSubmit = currentComponents != null && currentComponents.isNotEmpty() && !isLoading
+
+    Column(modifier = modifier) {
+        Button(
+            onClick = onUpdate,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = canSubmit
+        ) {
+            Text("Update")
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        Button(
+            onClick = onDelete,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !isLoading
+        ) {
+            Text("Delete")
+        }
+    }
+}
+
+@Composable
+private fun NewMealButtons(
     mealName: String?,
     currentComponents: List<MealComponentDto>?,
     isLoading: Boolean,

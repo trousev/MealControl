@@ -328,4 +328,37 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
         }
         _state.value = MealDetectionState()
     }
+
+    fun initializeForEdit(
+        photoUri: String,
+        mealName: String,
+        components: List<MealComponentDto>
+    ) {
+        viewModelScope.launch {
+            val conversationId = conversationDao.insertConversation(
+                ConversationEntity(
+                    title = "Meal Edit",
+                    createdAt = System.currentTimeMillis(),
+                    isMealDetection = true
+                )
+            )
+
+            val result = MealDetectionResult(
+                name = mealName,
+                components = components,
+                followup = ""
+            )
+            val resultJson = Json.encodeToString(MealDetectionResult.serializer(), result)
+
+            _state.value = MealDetectionState(
+                photoUri = photoUri,
+                mealName = mealName,
+                currentComponents = components,
+                lastResponseJson = resultJson,
+                isLoading = false,
+                error = null,
+                conversationId = conversationId
+            )
+        }
+    }
 }

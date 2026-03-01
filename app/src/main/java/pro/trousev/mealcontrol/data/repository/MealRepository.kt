@@ -18,7 +18,7 @@ class MealRepository(private val mealDao: MealDao) {
     suspend fun saveMeal(
         photoUri: String,
         description: String,
-        components: List<Triple<String, Int, List<Int>>>
+        components: List<Triple<String, Double, List<Number>>>
     ): Long {
         val timestamp = System.currentTimeMillis()
         val meal = MealEntity(
@@ -32,16 +32,44 @@ class MealRepository(private val mealDao: MealDao) {
             MealComponentEntity(
                 mealId = mealId,
                 name = name,
-                weightGrams = weight,
-                calories = values.getOrElse(0) { 0 },
-                proteinGrams = values.getOrElse(1) { 0 },
-                fatGrams = values.getOrElse(2) { 0 },
-                carbGrams = values.getOrElse(3) { 0 }
+                weightGrams = weight.toInt(),
+                calories = (values.getOrElse(0) { 0 } as? Number)?.toInt() ?: 0,
+                proteinGrams = (values.getOrElse(1) { 0 } as? Number)?.toInt() ?: 0,
+                fatGrams = (values.getOrElse(2) { 0 } as? Number)?.toInt() ?: 0,
+                carbGrams = (values.getOrElse(3) { 0 } as? Number)?.toInt() ?: 0
             )
         }
         mealDao.insertComponents(componentEntities)
 
         return mealId
+    }
+
+    suspend fun updateMeal(
+        mealId: Long,
+        description: String,
+        components: List<Triple<String, Double, List<Number>>>,
+        timestamp: Long
+    ) {
+        mealDao.updateMeal(
+            mealId = mealId,
+            description = description,
+            timestamp = timestamp
+        )
+
+        mealDao.deleteComponentsByMealId(mealId)
+
+        val componentEntities = components.map { (name, weight, values) ->
+            MealComponentEntity(
+                mealId = mealId,
+                name = name,
+                weightGrams = weight.toInt(),
+                calories = (values.getOrElse(0) { 0 } as? Number)?.toInt() ?: 0,
+                proteinGrams = (values.getOrElse(1) { 0 } as? Number)?.toInt() ?: 0,
+                fatGrams = (values.getOrElse(2) { 0 } as? Number)?.toInt() ?: 0,
+                carbGrams = (values.getOrElse(3) { 0 } as? Number)?.toInt() ?: 0
+            )
+        }
+        mealDao.insertComponents(componentEntities)
     }
 
     suspend fun deleteMeal(mealId: Long) {
