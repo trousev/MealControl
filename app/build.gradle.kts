@@ -118,6 +118,7 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.splashscreen)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.room.ktx)

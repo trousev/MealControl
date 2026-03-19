@@ -82,7 +82,7 @@ fun AppContent() {
                     NavigationBarItem(
                         icon = {
                             Icon(
-                                tab.icon,
+                                imageVector = tab.icon,
                                 contentDescription = tab.label
                             )
                         },
