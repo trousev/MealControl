@@ -33,9 +33,9 @@ class MealRepositoryTest {
         val photoUri = "content://photo/123"
         val description = "Lunch"
         val components = listOf(
-            Triple("Chicken", 150, listOf(300, 30, 10, 0)),
-            Triple("Rice", 100, listOf(200, 4, 1, 45)),
-            Triple("Salad", 50, listOf(20, 1, 0, 4))
+            Triple("Chicken", 150.0, listOf<Number>(300, 30, 10, 0)),
+            Triple("Rice", 100.0, listOf<Number>(200, 4, 1, 45)),
+            Triple("Salad", 50.0, listOf<Number>(20, 1, 0, 4))
         )
 
         val mealId = repository.saveMeal(photoUri, description, components)
@@ -58,11 +58,11 @@ class MealRepositoryTest {
 
     @Test
     fun getAllMeals_returnsMealsSortedByTimestamp() = runBlocking {
-        repository.saveMeal("photo1", "Meal 1", listOf(Triple("A", 100, listOf(100, 10, 5, 5))))
+        repository.saveMeal("photo1", "Meal 1", listOf(Triple("A", 100.0, listOf<Number>(100, 10, 5, 5))))
         Thread.sleep(10)
-        repository.saveMeal("photo2", "Meal 2", listOf(Triple("B", 200, listOf(200, 20, 10, 10))))
+        repository.saveMeal("photo2", "Meal 2", listOf(Triple("B", 200.0, listOf<Number>(200, 20, 10, 10))))
         Thread.sleep(10)
-        repository.saveMeal("photo3", "Meal 3", listOf(Triple("C", 300, listOf(300, 30, 15, 15))))
+        repository.saveMeal("photo3", "Meal 3", listOf(Triple("C", 300.0, listOf<Number>(300, 30, 15, 15))))
 
         val meals = repository.getAllMeals()
 
@@ -74,7 +74,7 @@ class MealRepositoryTest {
 
     @Test
     fun getMealById_returnsCorrectMeal() = runBlocking {
-        val mealId = repository.saveMeal("photo", "Dinner", listOf(Triple("Beef", 250, listOf(500, 40, 30, 0))))
+        val mealId = repository.saveMeal("photo", "Dinner", listOf(Triple("Beef", 250.0, listOf<Number>(500, 40, 30, 0))))
 
         val meal = repository.getMealById(mealId)
 
@@ -91,7 +91,7 @@ class MealRepositoryTest {
 
     @Test
     fun deleteMeal_removesMealAndComponents() = runBlocking {
-        val mealId = repository.saveMeal("photo", "Lunch", listOf(Triple("A", 100, listOf(100, 10, 5, 5))))
+        val mealId = repository.saveMeal("photo", "Lunch", listOf(Triple("A", 100.0, listOf<Number>(100, 10, 5, 5))))
 
         repository.deleteMeal(mealId)
 
@@ -111,7 +111,7 @@ class MealRepositoryTest {
 
     @Test
     fun saveMeal_withManyComponents_works() = runBlocking {
-        val manyComponents = (1..100).map { Triple("Component $it", it * 10, listOf(it * 10, it, it, it)) }
+        val manyComponents = (1..100).map { Triple("Component $it", (it * 10).toDouble(), listOf<Number>(it * 10, it, it, it)) }
         val mealId = repository.saveMeal("photo", "Many components", manyComponents)
 
         val meal = repository.getMealById(mealId)
@@ -126,9 +126,9 @@ class MealRepositoryTest {
             "photo",
             "Test",
             listOf(
-                Triple("Apple", 100, listOf(100, 0, 0, 25)),
-                Triple("Banana", 150, listOf(150, 1, 0, 38)),
-                Triple("Orange", 80, listOf(80, 1, 0, 20))
+                Triple("Apple", 100.0, listOf<Number>(100, 0, 0, 25)),
+                Triple("Banana", 150.0, listOf<Number>(150, 1, 0, 38)),
+                Triple("Orange", 80.0, listOf<Number>(80, 1, 0, 20))
             )
         )
 

@@ -96,6 +96,7 @@ dependencies {
     implementation("io.ktor:ktor-client-logging")
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.exifinterface)
+    implementation(libs.androidx.navigation.compose)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.room.ktx)

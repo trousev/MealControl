@@ -22,6 +22,9 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
     private val _todayMeals = MutableStateFlow<List<MealWithComponents>>(emptyList())
     val todayMeals: StateFlow<List<MealWithComponents>> = _todayMeals.asStateFlow()
 
+    private val _pendingPhotoUri = MutableStateFlow<String?>(null)
+    val pendingPhotoUri: StateFlow<String?> = _pendingPhotoUri.asStateFlow()
+
     init {
         viewModelScope.launch {
             loadMeals()
@@ -73,5 +76,17 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
             repository.updateMeal(mealId, description, components, timestamp)
             loadMeals()
         }
+    }
+
+    fun setPendingPhotoUri(uri: String) {
+        _pendingPhotoUri.value = uri
+    }
+
+    fun clearPendingPhoto() {
+        _pendingPhotoUri.value = null
+    }
+
+    suspend fun getMealById(mealId: Long): MealWithComponents? {
+        return repository.getMealById(mealId)
     }
 }
