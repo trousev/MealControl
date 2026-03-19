@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
 import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.data.repository.MealRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,6 +12,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Calendar
+
+data class DayNutrientTotals(
+    val calories: Int,
+    val protein: Int,
+    val fat: Int,
+    val carbs: Int
+)
 
 class MealViewModel(application: Application) : AndroidViewModel(application) {
     private val database = MealControlDatabase.getDatabase(application)
@@ -33,6 +41,9 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _currentPageIndex = MutableStateFlow(0)
     val currentPageIndex: StateFlow<Int> = _currentPageIndex.asStateFlow()
+
+    private val _dayTotals = MutableStateFlow<Map<Long, DayNutrientTotals>>(emptyMap())
+    val dayTotals: StateFlow<Map<Long, DayNutrientTotals>> = _dayTotals.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -66,6 +77,15 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
                 dates
             }
             _availableDates.value = datesWithToday
+
+            val totals = groupedMeals.mapValues { (_, meals) ->
+                val calories = meals.flatMap { it.components }.sumOf { it.calories }
+                val protein = meals.flatMap { it.components }.sumOf { it.proteinGrams }
+                val fat = meals.flatMap { it.components }.sumOf { it.fatGrams }
+                val carbs = meals.flatMap { it.components }.sumOf { it.carbGrams }
+                DayNutrientTotals(calories, protein, fat, carbs)
+            }
+            _dayTotals.value = totals
 
             _currentPageIndex.value = 0
         }
@@ -146,5 +166,14 @@ class MealViewModel(application: Application) : AndroidViewModel(application) {
 
     suspend fun getMealById(mealId: Long): MealWithComponents? {
         return repository.getMealById(mealId)
+    }
+
+    fun computeMealTotals(components: List<MealComponentEntity>): DayNutrientTotals {
+        return DayNutrientTotals(
+            calories = components.sumOf { it.calories },
+            protein = components.sumOf { it.proteinGrams },
+            fat = components.sumOf { it.fatGrams },
+            carbs = components.sumOf { it.carbGrams }
+        )
     }
 }
