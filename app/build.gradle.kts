@@ -79,12 +79,12 @@ ktlint {
 }
 
 detekt {
-    toolVersion.set(libs.versions.detekt.get())
-    config.set(files("$projectDir/config/detekt/detekt.yml"))
-    source.set(files("$projectDir/src"))
-    buildUponDefaultConfig.set(true)
-    allRules.set(false)
-    parallel.set(true)
+    toolVersion = libs.versions.detekt.get()
+    config.from("$projectDir/config/detekt/detekt.yml")
+    source.from("$projectDir/src")
+    buildUponDefaultConfig = true
+    allRules = false
+    parallel = true
 }
 
 dependencies {
