@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ktlint)
+    alias(libs.plugins.detekt)
 }
 
 android {
@@ -64,6 +66,25 @@ android {
     buildFeatures {
         compose = true
     }
+}
+
+ktlint {
+    version.set(libs.versions.ktlint.get())
+    android.set(true)
+    outputColorName.set("ANSI_GREEN")
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.SARIF)
+    }
+}
+
+detekt {
+    toolVersion.set(libs.versions.detekt.get())
+    config.set(files("$projectDir/config/detekt/detekt.yml"))
+    source.set(files("$projectDir/src"))
+    buildUponDefaultConfig.set(true)
+    allRules.set(false)
+    parallel.set(true)
 }
 
 dependencies {

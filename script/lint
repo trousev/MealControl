@@ -1,0 +1,56 @@
+#!/bin/bash
+set -e
+cd "$(dirname "$0")/.."
+
+if [ -f .env ]; then
+    source .env
+fi
+
+export JAVA_HOME
+export ANDROID_HOME
+
+VARIANT="debug"
+ALL_VARIANTS=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --all)
+            ALL_VARIANTS=true
+            shift
+            ;;
+        --release)
+            VARIANT="release"
+            shift
+            ;;
+        --debug)
+            VARIANT="debug"
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--debug|--release|--all]"
+            exit 1
+            ;;
+    esac
+done
+
+echo "Running lint checks..."
+
+if [ "$ALL_VARIANTS" = true ]; then
+    echo "Running lint on all variants..."
+    ./gradlew lint
+else
+    echo "Running lint on ${VARIANT} variant..."
+    ./gradlew lint${VARIANT^}
+fi
+
+echo ""
+echo "Running ktlint..."
+./gradlew ktlintCheck
+
+echo ""
+echo "Running detekt..."
+./gradlew detekt
+
+echo ""
+echo "Lint complete!"
