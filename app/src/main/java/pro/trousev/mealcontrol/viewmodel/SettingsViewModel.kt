@@ -6,9 +6,12 @@ import androidx.lifecycle.viewModelScope
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
 import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
 import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 enum class Gender {
@@ -67,8 +70,15 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
     private val _settingsLoaded = MutableStateFlow(false)
     val settingsLoaded: StateFlow<Boolean> = _settingsLoaded.asStateFlow()
 
+    private val saveTrigger = Channel<Unit>(Channel.CONFLATED)
+
     init {
         loadSettings()
+        viewModelScope.launch {
+            saveTrigger.receiveAsFlow()
+                .debounce(300L)
+                .collect { performSave() }
+        }
     }
 
     private fun loadSettings() {
@@ -185,7 +195,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
 
     fun updateOpenAiApiKey(apiKey: String) {
         _formState.value = _formState.value.copy(openAiApiKey = apiKey)
-        autoSaveSettings()
+        saveTrigger.trySend(Unit)
     }
 
     private fun recalculate() {
@@ -216,31 +226,29 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
                 customCarb = state.customCarbPercent
             )
             _formState.value = state.copy(isValid = true, calculation = calculation, customDistributionError = null)
-            autoSaveSettings()
+            saveTrigger.trySend(Unit)
         } else {
             _formState.value = state.copy(isValid = false, calculation = null, customDistributionError = customError)
         }
     }
 
-    private fun autoSaveSettings() {
-        viewModelScope.launch {
-            val state = _formState.value
-            val settings = UserSettingsEntity(
-                id = 1,
-                weightKg = state.weightKg.toFloatOrNull() ?: 0f,
-                heightCm = state.heightCm.toFloatOrNull() ?: 0f,
-                age = state.age.toIntOrNull() ?: 0,
-                gender = state.gender.name,
-                targetWeightChangeKg = state.targetWeightChangeKg.toFloatOrNull() ?: 0f,
-                activityLevel = state.activityLevel.ordinal + 1,
-                calorieDistribution = state.calorieDistribution.name,
-                customProteinPercent = state.customProteinPercent,
-                customFatPercent = state.customFatPercent,
-                customCarbPercent = state.customCarbPercent,
-                openAiApiKey = state.openAiApiKey
-            )
-            repository.saveSettings(settings)
-        }
+    private suspend fun performSave() {
+        val state = _formState.value
+        val settings = UserSettingsEntity(
+            id = 1,
+            weightKg = state.weightKg.toFloatOrNull() ?: 0f,
+            heightCm = state.heightCm.toFloatOrNull() ?: 0f,
+            age = state.age.toIntOrNull() ?: 0,
+            gender = state.gender.name,
+            targetWeightChangeKg = state.targetWeightChangeKg.toFloatOrNull() ?: 0f,
+            activityLevel = state.activityLevel.ordinal + 1,
+            calorieDistribution = state.calorieDistribution.name,
+            customProteinPercent = state.customProteinPercent,
+            customFatPercent = state.customFatPercent,
+            customCarbPercent = state.customCarbPercent,
+            openAiApiKey = state.openAiApiKey
+        )
+        repository.saveSettings(settings)
     }
 
     private fun calculateCalories(

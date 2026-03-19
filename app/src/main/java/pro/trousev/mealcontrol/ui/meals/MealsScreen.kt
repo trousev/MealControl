@@ -36,8 +36,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,7 +43,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
+import kotlinx.coroutines.launch
+import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
 import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
+import pro.trousev.mealcontrol.viewmodel.DayNutrientTotals
 import pro.trousev.mealcontrol.viewmodel.MealViewModel
 import pro.trousev.mealcontrol.viewmodel.SettingsViewModel
 import java.io.File
@@ -65,6 +66,7 @@ fun MealsScreen(
     val mealsByDate by mealViewModel.mealsByDate.collectAsState()
     val availableDates by mealViewModel.availableDates.collectAsState()
     val currentPageIndex by mealViewModel.currentPageIndex.collectAsState()
+    val dayTotals by mealViewModel.dayTotals.collectAsState()
     val settingsFormState by settingsViewModel.formState.collectAsState()
 
     val targetCalories = settingsFormState.calculation?.dailyCalories ?: 0
@@ -100,6 +102,7 @@ fun MealsScreen(
                 dateTimestamp = dateTimestamp,
                 isToday = isToday,
                 meals = dayMeals,
+                dayTotals = dayTotals[dateTimestamp] ?: DayNutrientTotals(0, 0, 0, 0),
                 targetCalories = targetCalories,
                 targetProtein = targetProtein,
                 targetFat = targetFat,
@@ -113,7 +116,8 @@ fun MealsScreen(
                             pagerState.animateScrollToPage(todayIndex)
                         }
                     }
-                }
+                },
+                computeMealTotals = { mealViewModel.computeMealTotals(it) }
             )
         }
     }
@@ -124,23 +128,20 @@ private fun DayPage(
     dateTimestamp: Long,
     isToday: Boolean,
     meals: List<MealWithComponents>,
+    dayTotals: DayNutrientTotals,
     targetCalories: Int,
     targetProtein: Int,
     targetFat: Int,
     targetCarbs: Int,
     onAddMealClick: () -> Unit,
     onMealClick: (MealWithComponents) -> Unit,
-    onGoToTodayClick: () -> Unit
+    onGoToTodayClick: () -> Unit,
+    computeMealTotals: (List<MealComponentEntity>) -> DayNutrientTotals
 ) {
-    val consumedCalories = meals.flatMap { it.components }.sumOf { it.calories }
-    val consumedProtein = meals.flatMap { it.components }.sumOf { it.proteinGrams }
-    val consumedFat = meals.flatMap { it.components }.sumOf { it.fatGrams }
-    val consumedCarbs = meals.flatMap { it.components }.sumOf { it.carbGrams }
-
-    val remainingCalories = targetCalories - consumedCalories
-    val remainingProtein = targetProtein - consumedProtein
-    val remainingFat = targetFat - consumedFat
-    val remainingCarbs = targetCarbs - consumedCarbs
+    val remainingCalories = targetCalories - dayTotals.calories
+    val remainingProtein = targetProtein - dayTotals.protein
+    val remainingFat = targetFat - dayTotals.fat
+    val remainingCarbs = targetCarbs - dayTotals.carbs
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
@@ -154,16 +155,16 @@ private fun DayPage(
                 DaySummaryCard(
                     dateTimestamp = dateTimestamp,
                     isToday = isToday,
-                    consumedCalories = consumedCalories,
+                    consumedCalories = dayTotals.calories,
                     targetCalories = targetCalories,
                     remainingCalories = remainingCalories,
-                    consumedProtein = consumedProtein,
+                    consumedProtein = dayTotals.protein,
                     targetProtein = targetProtein,
                     remainingProtein = remainingProtein,
-                    consumedFat = consumedFat,
+                    consumedFat = dayTotals.fat,
                     targetFat = targetFat,
                     remainingFat = remainingFat,
-                    consumedCarbs = consumedCarbs,
+                    consumedCarbs = dayTotals.carbs,
                     targetCarbs = targetCarbs,
                     remainingCarbs = remainingCarbs
                 )
@@ -187,6 +188,7 @@ private fun DayPage(
                 items(meals, key = { it.meal.id }) { mealWithComponents ->
                     MealCard(
                         mealWithComponents = mealWithComponents,
+                        totals = computeMealTotals(mealWithComponents.components),
                         onClick = { onMealClick(mealWithComponents) }
                     )
                 }
@@ -321,15 +323,11 @@ private fun DaySummaryCard(
 @Composable
 private fun MealCard(
     mealWithComponents: MealWithComponents,
+    totals: DayNutrientTotals,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val meal = mealWithComponents.meal
-    val components = mealWithComponents.components
-    val totalCalories = components.sumOf { it.calories }
-    val totalProtein = components.sumOf { it.proteinGrams }
-    val totalFat = components.sumOf { it.fatGrams }
-    val totalCarbs = components.sumOf { it.carbGrams }
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.US) }
 
     Card(
@@ -373,7 +371,7 @@ private fun MealCard(
                 Spacer(modifier = Modifier.height(4.dp))
 
                 Text(
-                    text = "$totalCalories kcal (P:${totalProtein}g F:${totalFat}g C:${totalCarbs}g)",
+                    text = "${totals.calories} kcal (P:${totals.protein}g F:${totals.fat}g C:${totals.carbs}g)",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
