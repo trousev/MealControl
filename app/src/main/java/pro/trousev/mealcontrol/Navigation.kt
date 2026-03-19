@@ -1,8 +1,8 @@
 package pro.trousev.mealcontrol
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Email
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.ui.graphics.vector.ImageVector
 
@@ -26,9 +26,9 @@ enum class AppTab(
     val label: String,
     val icon: ImageVector,
 ) {
-    MEALS(Screen.Meals.route, "Meals", Icons.Default.List),
-    CHAT(Screen.ConversationsList.route, "Chat", Icons.Default.Email),
-    SETTINGS(Screen.Settings.route, "Settings", Icons.Default.Settings),
+    MEALS(Screen.Meals.route, "Meals", Icons.AutoMirrored.Filled.List),
+    CHAT(Screen.ConversationsList.route, "Chat", Icons.Filled.Email),
+    SETTINGS(Screen.Settings.route, "Settings", Icons.Filled.Settings),
 }
 
 fun AppTab.toScreen(): Screen = when (this) {

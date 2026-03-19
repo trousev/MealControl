@@ -150,7 +150,7 @@ fun ScanMealScreen(
                         modifier = Modifier.size(72.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Add,
+                            imageVector = Icons.Filled.Add,
                             contentDescription = "Capture",
                             modifier = Modifier.size(36.dp)
                         )
