@@ -208,6 +208,7 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
                 error = null
             )
         } else if (followup.isNotEmpty()) {
+            val resultJson = Json.encodeToString(MealDetectionResult.serializer(), result)
             _state.value = _state.value.copy(
                 messages = _state.value.messages + MealDetectionMessage(
                     content = messageContent,
@@ -217,7 +218,7 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
                 currentQuestion = followup,
                 currentComponents = null,
                 mealName = null,
-                lastResponseJson = _state.value.lastResponseJson,
+                lastResponseJson = resultJson,
                 isLoading = false,
                 error = null
             )
