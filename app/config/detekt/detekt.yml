@@ -1,0 +1,181 @@
+comments:
+  active: true
+  EndOfFile:
+    active: true
+  UndocumentedPublicClass:
+    active: false
+  UndocumentedPublicFunction:
+    active: false
+
+complexity:
+  active: true
+  LongMethod:
+    active: true
+    threshold: 60
+  LongParameterList:
+    active: true
+    threshold: 8
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 25
+    thresholdInClasses: 20
+    thresholdInInterfaces: 15
+    thresholdInObjects: 15
+    thresholdInEnums: 10
+
+empty-blocks:
+  active: true
+
+exceptions:
+  active: true
+
+formatting:
+  active: true
+  AnnotationSpacing:
+    active: false
+  BlockCommentInitialStarAlignment:
+    active: false
+  DiscouragedCommentLocation:
+    active: false
+  EnumEntryNameCase:
+    active: true
+  EqualsOnSignatureLine:
+    active: false
+  Filename:
+    active: true
+  FunctionReturnTypeWrapping:
+    active: false
+  ImportOrdering:
+    active: true
+  ModifierOrder:
+    active: true
+  MultiLineIfElse:
+    active: false
+  NoBlankLineBeforeRbrace:
+    active: false
+  NoConsecutiveBlankLines:
+    active: true
+  NoLinePrefixLogging:
+    active: true
+  PackageNaming:
+    active: true
+  ParameterListWrapping:
+    active: false
+  ParameterWrapping:
+    active: false
+  PropertyNaming:
+    active: true
+  TrailComma:
+    active: false
+  TypeParameterListWrapping:
+    active: false
+  UseRequire:
+    active: false
+  Wrapping:
+    active: false
+
+naming:
+  active: true
+  ClassNaming:
+    active: true
+    classPattern: '[A-Z][a-zA-Z0-9]*'
+  ConstructorParameterNaming:
+    active: true
+  EnumNaming:
+    active: true
+    enumEntryPattern: '[A-Z][A-Za-z0-9]*'
+  FunctionNaming:
+    active: true
+    functionPattern: '[a-z][a-zA-Z0-9]*'
+  FunctionParameterNaming:
+    active: true
+  PropertyNaming:
+    active: true
+    propertyPattern: '[a-z][A-Za-z0-9]*'
+
+performance:
+  active: true
+
+potential-bugs:
+  active: true
+  MissingWhenCase:
+    active: true
+  NullableToStringCall:
+    active: false
+  UnreachableCode:
+    active: true
+
+style:
+  active: true
+  ClassOrdering:
+    active: true
+  CollapsibleIfStatements:
+    active: true
+  DataClassShouldBeImmutable:
+    active: false
+  EqualsNullCall:
+    active: true
+  ExplicitCollectionElementAccessMethod:
+    active: false
+  ExpressionBodySyntax:
+    active: false
+  ForbiddenComment:
+    active: false
+  ForbiddenImport:
+    active: false
+  FunctionOnlyReadingConstants:
+    active: false
+  LibraryCodeShouldSpecifyReturnType:
+    active: false
+  MagicNumber:
+    active: false
+  MandatoryBracesIfStatements:
+    active: false
+  MaxLineLength:
+    active: false
+  ModifierOrdering:
+    active: false
+  NoTabs:
+    active: false
+  OptionalUnit:
+    active: false
+  OptionalWhenBraces:
+    active: false
+  PreferToOverPairSyntax:
+    active: false
+  ProtectedMemberInFinalClass:
+    active: true
+  SerialVersionUIDInSerializableClass:
+    active: false
+  SpacingBetweenPackageAndImports:
+    active: false
+  ThrowsCountExceeded:
+    active: false
+  TrailingWhitespace:
+    active: false
+  UnderscoresInNumericLiterals:
+    active: false
+  UnusedPrivateMember:
+    active: true
+  UseArrayLiteralsInAnnotations:
+    active: false
+  UseCheckNotIn:
+    active: false
+  UseDataClass:
+    active: false
+  UseIfInsteadOfWhen:
+    active: false
+  UseIsNullOrEmpty:
+    active: true
+  UseOrEmpty:
+    active: false
+  UseRequireNotNull:
+    active: false
+  UselessCallOnNotNull:
+    active: true
+  UtilityClassWithPublicConstructor:
+    active: true
+  VarCouldBeVal:
+    active: true
+  WildcardImport:
+    active: false

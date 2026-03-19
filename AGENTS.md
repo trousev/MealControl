@@ -3,36 +3,55 @@
 ## Project Overview
 MealControl is an Android application built with Kotlin and Jetpack Compose. It manages meals and includes a chat feature.
 
-## Build Commands
-
-### Build
-- `./script/build` - Build debug APK (recommended, handles Java/Android SDK setup)
-- `./gradlew assembleDebug` - Build debug APK (requires manual JAVA_HOME/ANDROID_HOME setup)
-- `./gradlew assembleRelease` - Build release APK
-
-**IMPORTANT**: Always use `./script/build` for compilation. Do NOT attempt to install any packages, find custom Java installations, or set up the environment manually.
-
-### Build Environment
+## Build Environment
 All build operations require Java and Android SDK to be configured via environment variables. These MUST be set in a `.env` file in the project root:
 - `JAVA_HOME` - Path to Java installation
 - `ANDROID_ROOT` - Path to Android SDK
 
 If the `.env` file is missing or does not contain valid paths, inform the user that building is not possible and ask them to set up the environment.
 
-### Run Tests
-- `./gradlew test` - Run unit tests
-- `./gradlew testDebugUnitTest` - Run unit tests for debug variant
-- `./gradlew testReleaseUnitTest` - Run unit tests for release variant
-- `./gradlew connectedAndroidTest` - Run instrumented tests (requires emulator/device)
-- `./gradlew testDebugUnitTest --tests "pro.trousev.mealcontrol.ExampleUnitTest"` - Run a single unit test class
+## Available Scripts
 
-### Lint
-- `./gradlew lint` - Run lint analysis
-- `./gradlew lintDebug` - Run lint on debug variant
+**IMPORTANT**: ALWAYS use `./script/*` commands. Never run `./gradlew` directly. All scripts automatically load environment variables from `.env`.
 
-### Other Commands
-- `./gradlew clean` - Clean build artifacts
-- `./gradlew build` - Full build with tests and lint
+| Script | Description |
+|--------|-------------|
+| `./script/build [--debug\|--release]` | Build APK |
+| `./script/run [--debug\|--release]` | Build + install to device + launch + logcat |
+| `./script/test [TestClass]` | Run unit tests (optional: specify fully-qualified class name) |
+| `./script/lint [--all]` | Run Android Lint, ktlint, and detekt (default: debug variant) |
+| `./script/update` | Check/update dependencies |
+
+### Script Details
+
+#### Build
+```bash
+./script/build           # Build debug APK
+./script/build --release # Build release APK
+```
+
+#### Run
+```bash
+./script/run              # Build debug + install + launch + logcat
+./script/run --release    # Same for release variant
+```
+
+#### Test
+```bash
+./script/test                            # Run all unit tests
+./script/test "pro.trousev.mealcontrol.ExampleUnitTest"  # Run specific test class
+```
+
+#### Lint
+```bash
+./script/lint           # Run lint on debug variant (Android Lint + ktlint + detekt)
+./script/lint --all     # Run lint on all variants
+```
+
+#### Update
+```bash
+./script/update         # Check dependency tree
+```
 
 ## Code Style Guidelines
 
@@ -147,7 +166,7 @@ abstract class MealControlDatabase : RoomDatabase() {
 - Test classes should be named with `Test` suffix (e.g., `ExampleUnitTest`)
 - Test ViewModels to verify state changes, calculations, and business logic
 - Test repositories to verify data operations
-- Run tests before committing: `./script/test`
+- Run tests before committing: `./script/test` (see Available Scripts section above)
 
 ### Gradle Configuration
 - Uses Kotlin DSL (`*.gradle.kts` files)
