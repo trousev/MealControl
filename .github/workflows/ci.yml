@@ -21,6 +21,12 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Cache dependencies
+        run: ./script/update
+
       - name: Run lint
         run: ./script/lint
 
