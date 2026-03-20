@@ -13,7 +13,6 @@ interface SecureStorage {
 
 class ApiKeyManager(private val context: Context) : SecureStorage {
     private val masterKey: MasterKey = MasterKey.Builder(context)
-        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
         .setKeyGenParameterSpec(
             KeyGenParameterSpec.Builder(
                 MasterKey.DEFAULT_MASTER_KEY_ALIAS,
