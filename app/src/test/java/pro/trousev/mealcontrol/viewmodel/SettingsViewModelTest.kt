@@ -1,35 +1,61 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
+import androidx.room.Room
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import pro.trousev.mealcontrol.ServiceLocator
+import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.util.SecureStorage
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsViewModelTest {
-    private lateinit var application: Application
+    private lateinit var database: MealControlDatabase
 
     @Before
     fun setup() {
-        application = RuntimeEnvironment.getApplication()
+        database =
+            Room
+                .inMemoryDatabaseBuilder(
+                    RuntimeEnvironment.getApplication().applicationContext,
+                    MealControlDatabase::class.java,
+                ).allowMainThreadQueries()
+                .build()
+        val mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String = ""
+            }
+        ServiceLocator.initialize(RuntimeEnvironment.getApplication(), mockSecureStorage)
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+        ServiceLocator.resetForTesting()
     }
 
     @Test
     fun settingsViewModel_creation_doesNotCrash() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         assertNotNull(viewModel.formState)
         assertNotNull(viewModel.settingsLoaded)
     }
 
     @Test
     fun settingsViewModel_defaultState_hasEmptyValues() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         val state = viewModel.formState.value
         assertEquals("", state.weightKg)
         assertEquals("", state.heightCm)
@@ -40,49 +66,49 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_updateWeight_filtersNonNumeric() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80.5kg")
         assertEquals("80.5", viewModel.formState.value.weightKg)
     }
 
     @Test
     fun settingsViewModel_updateWeight_acceptsValidNumber() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         assertEquals("80", viewModel.formState.value.weightKg)
     }
 
     @Test
     fun settingsViewModel_updateHeight_filtersNonNumeric() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateHeight("180.5cm")
         assertEquals("180.5", viewModel.formState.value.heightCm)
     }
 
     @Test
     fun settingsViewModel_updateAge_filtersNonNumeric() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateAge("30years")
         assertEquals("30", viewModel.formState.value.age)
     }
 
     @Test
     fun settingsViewModel_updateGender_changesGender() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateGender(Gender.FEMALE)
         assertEquals(Gender.FEMALE, viewModel.formState.value.gender)
     }
 
     @Test
     fun settingsViewModel_updateActivityLevel_changesLevel() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateActivityLevel(ActivityLevel.VERY_ACTIVE)
         assertEquals(ActivityLevel.VERY_ACTIVE, viewModel.formState.value.activityLevel)
     }
 
     @Test
     fun settingsViewModel_calculation_maleSedentary_validInput() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -98,7 +124,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_female_hasDifferentBmr() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("60")
         viewModel.updateHeight("165")
         viewModel.updateAge("25")
@@ -114,7 +140,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_withWeightLoss_hasDeficit() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -131,7 +157,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_withWeightGain_hasSurplus() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -148,7 +174,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_highProteinDistribution() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -162,7 +188,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_balancedDistribution() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -178,7 +204,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_customDistribution() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -195,7 +221,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_weightChange_recommendsHighProteinWhenLosing() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateTargetWeightChange("-5")
 
         assertEquals(CalorieDistribution.HIGH_PROTEIN, viewModel.formState.value.calorieDistribution)
@@ -203,7 +229,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_weightChange_recommendsBalancedWhenGaining() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateTargetWeightChange("5")
 
         assertEquals(CalorieDistribution.BALANCED, viewModel.formState.value.calorieDistribution)
@@ -211,7 +237,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_invalidWeight_outOfRange() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("20")
         viewModel.updateHeight("180")
         viewModel.updateAge("30")
@@ -221,7 +247,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_invalidHeight_outOfRange() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("50")
         viewModel.updateAge("30")
@@ -231,7 +257,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_invalidAge_outOfRange() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("80")
         viewModel.updateHeight("180")
         viewModel.updateAge("5")
@@ -264,7 +290,7 @@ class SettingsViewModelTest {
 
     @Test
     fun settingsViewModel_calculation_producesValidMacros() {
-        val viewModel = SettingsViewModel(application)
+        val viewModel = SettingsViewModel()
         viewModel.updateWeight("70")
         viewModel.updateHeight("170")
         viewModel.updateAge("25")

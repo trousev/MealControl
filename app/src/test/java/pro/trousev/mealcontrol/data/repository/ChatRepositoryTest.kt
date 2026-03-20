@@ -3,8 +3,11 @@ package pro.trousev.mealcontrol.data.repository
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -13,20 +16,33 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
 import pro.trousev.mealcontrol.data.local.TestDatabaseFactory
+import pro.trousev.mealcontrol.util.SecureStorage
 
 @RunWith(RobolectricTestRunner::class)
 class ChatRepositoryTest {
     private lateinit var database: MealControlDatabase
     private lateinit var repository: ChatRepository
+    private lateinit var mockSecureStorage: SecureStorage
 
     @Before
     fun setup() {
         database = TestDatabaseFactory.createInMemory(RuntimeEnvironment.getApplication())
+        mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String = ""
+            }
+        val userSettingsRepository =
+            UserSettingsRepository(
+                database.userSettingsDao(),
+                mockSecureStorage,
+            )
         repository =
             ChatRepository(
                 database.conversationDao(),
                 database.messageDao(),
-                database.userSettingsDao(),
+                userSettingsRepository,
             )
     }
 
