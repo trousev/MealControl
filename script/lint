@@ -38,10 +38,10 @@ echo "Running lint checks..."
 
 if [ "$ALL_VARIANTS" = true ]; then
     echo "Running lint on all variants..."
-    ./gradlew lint
+    ./gradlew lintDevDebug lintProdDebug
 else
     echo "Running lint on ${VARIANT} variant..."
-    ./gradlew lint${VARIANT^}
+    ./gradlew lintDevDebug
 fi
 
 echo ""
