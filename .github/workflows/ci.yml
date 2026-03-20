@@ -36,16 +36,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           build-cache: true
-          cache-overwrite-existing: true
 
       - name: Configure Gradle
         run: |
           mkdir -p ~/.gradle
           echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
           echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
-
-      - name: Cache dependencies
-        run: ./script/update
 
       - name: Run lint
         run: ./script/lint
