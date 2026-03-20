@@ -1,9 +1,8 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
 import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.data.repository.MealRepository
@@ -20,9 +19,8 @@ data class DayNutrientTotals(
     val carbs: Int
 )
 
-class MealViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = MealControlDatabase.getDatabase(application)
-    private val repository = MealRepository(database.mealDao())
+class MealViewModel : ViewModel() {
+    private val repository: MealRepository = ServiceLocator.provideMealRepository()
 
     private val _meals = MutableStateFlow<List<MealWithComponents>>(emptyList())
     val meals: StateFlow<List<MealWithComponents>> = _meals.asStateFlow()
