@@ -52,9 +52,9 @@ data class MealDetectionMessage(
 )
 
 class MealDetectionViewModel : ViewModel() {
-    private val userSettingsDao: UserSettingsDao = ServiceLocator.provideDatabase().userSettingsDao()
-    private val conversationDao: ConversationDao = ServiceLocator.provideDatabase().conversationDao()
-    private val messageDao: MessageDao = ServiceLocator.provideDatabase().messageDao()
+    private val userSettingsRepository = ServiceLocator.provideUserSettingsRepository()
+    private val conversationDao = ServiceLocator.provideDatabase().conversationDao()
+    private val messageDao = ServiceLocator.provideDatabase().messageDao()
 
     private val _state = MutableStateFlow(MealDetectionState())
     val state: StateFlow<MealDetectionState> = _state.asStateFlow()
@@ -85,7 +85,7 @@ class MealDetectionViewModel : ViewModel() {
     }
 
     private suspend fun analyzePhoto(userFollowup: String? = null) {
-        val settings = userSettingsDao.getSettings()
+        val settings = userSettingsRepository.getSettings()
         val apiKey = settings?.openAiApiKey ?: ""
 
         if (apiKey.isBlank()) {

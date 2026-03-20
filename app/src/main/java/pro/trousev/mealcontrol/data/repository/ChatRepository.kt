@@ -6,7 +6,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import pro.trousev.mealcontrol.data.local.dao.ConversationDao
 import pro.trousev.mealcontrol.data.local.dao.MessageDao
-import pro.trousev.mealcontrol.data.local.dao.UserSettingsDao
 import pro.trousev.mealcontrol.data.local.entity.ConversationEntity
 import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
 import pro.trousev.mealcontrol.data.local.entity.MessageEntity
@@ -23,7 +22,7 @@ data class ConversationWithLastMessage(
 class ChatRepository(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
-    private val userSettingsDao: UserSettingsDao
+    private val userSettingsRepository: UserSettingsRepository
 ) {
 
     suspend fun getAllConversations(): List<ConversationWithLastMessage> {
@@ -68,7 +67,7 @@ class ChatRepository(
     }
 
     private suspend fun getBotReply(conversationId: Long, userMessage: String, timestamp: Long): MessageEntity {
-        val settings = userSettingsDao.getSettings()
+        val settings = userSettingsRepository.getSettings()
         val apiKey = settings?.openAiApiKey ?: ""
 
         if (apiKey.isBlank()) {

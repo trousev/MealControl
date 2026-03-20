@@ -9,6 +9,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.util.SecureStorage
 import androidx.room.Room
 
 @RunWith(RobolectricTestRunner::class)
@@ -24,7 +25,11 @@ class SettingsViewModelTest {
         )
             .allowMainThreadQueries()
             .build()
-        ServiceLocator.initialize(RuntimeEnvironment.getApplication())
+        val mockSecureStorage = object : SecureStorage {
+            override fun storeApiKey(apiKey: String) {}
+            override fun retrieveApiKey(): String = ""
+        }
+        ServiceLocator.initialize(RuntimeEnvironment.getApplication(), mockSecureStorage)
     }
 
     @After

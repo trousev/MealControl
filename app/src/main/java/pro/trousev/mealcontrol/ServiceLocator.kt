@@ -5,15 +5,21 @@ import pro.trousev.mealcontrol.data.local.MealControlDatabase
 import pro.trousev.mealcontrol.data.repository.ChatRepository
 import pro.trousev.mealcontrol.data.repository.MealRepository
 import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
+import pro.trousev.mealcontrol.util.ApiKeyManager
+import pro.trousev.mealcontrol.util.SecureStorage
 
 object ServiceLocator {
     private var database: MealControlDatabase? = null
     private var mealRepository: MealRepository? = null
     private var chatRepository: ChatRepository? = null
     private var userSettingsRepository: UserSettingsRepository? = null
+    private var secureStorage: SecureStorage? = null
+    private var context: Context? = null
 
-    fun initialize(context: Context) {
-        database = MealControlDatabase.getDatabase(context.applicationContext)
+    fun initialize(appContext: Context, testSecureStorage: SecureStorage? = null) {
+        context = appContext.applicationContext
+        database = MealControlDatabase.getDatabase(context!!)
+        secureStorage = testSecureStorage ?: ApiKeyManager(context!!)
     }
 
     fun provideMealRepository(): MealRepository {
@@ -27,15 +33,17 @@ object ServiceLocator {
             chatRepository ?: ChatRepository(
                 database!!.conversationDao(),
                 database!!.messageDao(),
-                database!!.userSettingsDao()
+                provideUserSettingsRepository()
             ).also { chatRepository = it }
         }
     }
 
     fun provideUserSettingsRepository(): UserSettingsRepository {
         return userSettingsRepository ?: synchronized(this) {
-            userSettingsRepository ?: UserSettingsRepository(database!!.userSettingsDao())
-                .also { userSettingsRepository = it }
+            userSettingsRepository ?: UserSettingsRepository(
+                database!!.userSettingsDao(),
+                secureStorage!!
+            ).also { userSettingsRepository = it }
         }
     }
 
@@ -48,5 +56,7 @@ object ServiceLocator {
         mealRepository = null
         chatRepository = null
         userSettingsRepository = null
+        secureStorage = null
+        context = null
     }
 }
