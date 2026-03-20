@@ -8,10 +8,20 @@ fi
 export JAVA_HOME
 export ANDROID_HOME
 
-if [ -n "$1" ]; then
-    ./gradlew test --tests "$1"
+if [ "$1" = "--prod" ]; then
+    variant="ProdDebug"
+    shift
+elif [ "$1" = "--debug" ]; then
+    variant="DevDebug"
+    shift
 else
-    ./gradlew test
+    variant="DevDebug"
+fi
+
+if [ -n "$1" ]; then
+    ./gradlew test${variant}UnitTest --tests "$1"
+else
+    ./gradlew test${variant}UnitTest
 fi
 test_result=$?
 
@@ -24,20 +34,20 @@ passed=0
 failed=0
 skipped=0
 
-for xml in app/build/test-results/testDebugUnitTest/*.xml; do
+for xml in app/build/test-results/test${variant}UnitTest/*.xml; do
     if [ -f "$xml" ]; then
         tests=$(grep -oP '(?<=tests=")[^"]+' "$xml" | head -1)
         failures=$(grep -oP '(?<=failures=")[^"]+' "$xml" | head -1)
-        skipped=$(grep -oP '(?<=skipped=")[^"]+' "$xml" | head -1)
+        skipped_count=$(grep -oP '(?<=skipped=")[^"]+' "$xml" | head -1)
         
         [ -z "$tests" ] && tests=0
         [ -z "$failures" ] && failures=0
-        [ -z "$skipped" ] && skipped=0
+        [ -z "$skipped_count" ] && skipped_count=0
         
         total=$((total + tests))
-        passed=$((passed + tests - failures - skipped))
+        passed=$((passed + tests - failures - skipped_count))
         failed=$((failed + failures))
-        skipped=$((skipped + skipped))
+        skipped=$((skipped + skipped_count))
     fi
 done
 

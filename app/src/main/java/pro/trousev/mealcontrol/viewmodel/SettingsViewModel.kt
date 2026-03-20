@@ -1,13 +1,10 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
 import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
-import pro.trousev.mealcontrol.util.ApiKeyManager
-import pro.trousev.mealcontrol.util.SecureStorage
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -62,12 +59,8 @@ data class SettingsFormState(
     val customDistributionError: String? = null
 )
 
-class SettingsViewModel(
-    application: Application,
-    secureStorage: SecureStorage = ApiKeyManager(application)
-) : AndroidViewModel(application) {
-    private val database = MealControlDatabase.getDatabase(application)
-    private val repository = UserSettingsRepository(database.userSettingsDao(), secureStorage)
+class SettingsViewModel : ViewModel() {
+    private val repository: UserSettingsRepository = ServiceLocator.provideUserSettingsRepository()
 
     private val _formState = MutableStateFlow(SettingsFormState())
     val formState: StateFlow<SettingsFormState> = _formState.asStateFlow()

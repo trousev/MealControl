@@ -1,50 +1,60 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.After
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
-import pro.trousev.mealcontrol.data.local.TestDatabaseFactory
 import pro.trousev.mealcontrol.util.SecureStorage
+import androidx.room.Room
 
 @RunWith(RobolectricTestRunner::class)
 class ChatViewModelTest {
 
-    private lateinit var application: Application
     private lateinit var database: MealControlDatabase
-    private lateinit var mockSecureStorage: SecureStorage
 
     @Before
     fun setup() {
-        application = RuntimeEnvironment.getApplication()
-        database = TestDatabaseFactory.createInMemory(application)
-        mockSecureStorage = object : SecureStorage {
+        database = Room.inMemoryDatabaseBuilder(
+            RuntimeEnvironment.getApplication().applicationContext,
+            MealControlDatabase::class.java
+        )
+            .allowMainThreadQueries()
+            .build()
+        val mockSecureStorage = object : SecureStorage {
             override fun storeApiKey(apiKey: String) {}
             override fun retrieveApiKey(): String = ""
         }
+        ServiceLocator.initialize(RuntimeEnvironment.getApplication(), mockSecureStorage)
+    }
+
+    @After
+    fun tearDown() {
+        database.close()
+        ServiceLocator.resetForTesting()
     }
 
     @Test
     fun chatViewModel_creation_doesNotCrash() {
-        val viewModel = ChatViewModel(application, mockSecureStorage)
+        val viewModel = ChatViewModel()
         assertNotNull(viewModel.conversations)
         assertNotNull(viewModel.currentConversation)
     }
 
     @Test
     fun chatViewModel_conversationsStateFlow_isInitialized() {
-        val viewModel = ChatViewModel(application, mockSecureStorage)
+        val viewModel = ChatViewModel()
         assertNotNull(viewModel.conversations)
         assertNotNull(viewModel.conversations.value)
     }
 
     @Test
     fun chatViewModel_currentConversationStateFlow_isInitialized() {
-        val viewModel = ChatViewModel(application, mockSecureStorage)
+        val viewModel = ChatViewModel()
         assertNotNull(viewModel.currentConversation)
         assertNull(viewModel.currentConversation.value)
     }

@@ -1,9 +1,8 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
 import android.util.Base64
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,7 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.ServiceLocator
+import pro.trousev.mealcontrol.data.local.dao.ConversationDao
+import pro.trousev.mealcontrol.data.local.dao.MessageDao
+import pro.trousev.mealcontrol.data.local.dao.UserSettingsDao
 import pro.trousev.mealcontrol.data.local.entity.ConversationEntity
 import pro.trousev.mealcontrol.data.local.entity.MessageEntity
 import pro.trousev.mealcontrol.data.remote.ChatHistoryItem
@@ -20,10 +22,7 @@ import pro.trousev.mealcontrol.data.remote.MealDetectionResponse
 import pro.trousev.mealcontrol.data.remote.MealDetectionResult
 import pro.trousev.mealcontrol.data.remote.OpenAiService
 import pro.trousev.mealcontrol.data.remote.parseMealDetectionResult
-import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
-import pro.trousev.mealcontrol.util.ApiKeyManager
 import pro.trousev.mealcontrol.util.ImageCompression
-import pro.trousev.mealcontrol.util.SecureStorage
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -52,14 +51,10 @@ data class MealDetectionMessage(
     val timestamp: Long
 )
 
-class MealDetectionViewModel(
-    application: Application,
-    secureStorage: SecureStorage = ApiKeyManager(application)
-) : AndroidViewModel(application) {
-    private val database = MealControlDatabase.getDatabase(application)
-    private val userSettingsRepository = UserSettingsRepository(database.userSettingsDao(), secureStorage)
-    private val conversationDao = database.conversationDao()
-    private val messageDao = database.messageDao()
+class MealDetectionViewModel : ViewModel() {
+    private val userSettingsRepository = ServiceLocator.provideUserSettingsRepository()
+    private val conversationDao = ServiceLocator.provideDatabase().conversationDao()
+    private val messageDao = ServiceLocator.provideDatabase().messageDao()
 
     private val _state = MutableStateFlow(MealDetectionState())
     val state: StateFlow<MealDetectionState> = _state.asStateFlow()
