@@ -9,5 +9,5 @@ data class MealEntity(
     val id: Long = 0,
     val photoUri: String,
     val description: String,
-    val timestamp: Long
+    val timestamp: Long,
 )

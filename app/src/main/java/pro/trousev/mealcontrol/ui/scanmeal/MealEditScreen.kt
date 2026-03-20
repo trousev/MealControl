@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -61,7 +59,7 @@ fun MealEditScreen(
     onUpdate: (String, List<Triple<String, Double, List<Number>>>) -> Unit,
     onDelete: () -> Unit,
     onRetake: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val viewModel: MealDetectionViewModel = viewModel()
     val state by viewModel.state.collectAsState()
@@ -70,16 +68,17 @@ fun MealEditScreen(
 
     LaunchedEffect(existingMeal, photoUri) {
         if (isEditMode && existingMeal != null) {
-            val components = existingMeal.components.map { component ->
-                MealComponentDto(
-                    name = component.name,
-                    weightG = component.weightGrams.toDouble(),
-                    energyKcal = component.calories.toDouble(),
-                    proteinG = component.proteinGrams.toDouble(),
-                    fatG = component.fatGrams.toDouble(),
-                    carbsG = component.carbGrams.toDouble()
-                )
-            }
+            val components =
+                existingMeal.components.map { component ->
+                    MealComponentDto(
+                        name = component.name,
+                        weightG = component.weightGrams.toDouble(),
+                        energyKcal = component.calories.toDouble(),
+                        proteinG = component.proteinGrams.toDouble(),
+                        fatG = component.fatGrams.toDouble(),
+                        carbsG = component.carbGrams.toDouble(),
+                    )
+                }
             viewModel.initializeForEdit(photoUri, existingMeal.meal.description, components)
         } else if (!isEditMode && photoUri.isNotEmpty()) {
             viewModel.retake()
@@ -88,15 +87,16 @@ fun MealEditScreen(
     }
 
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .imePadding()
-            .padding(16.dp)
+        modifier =
+            modifier
+                .fillMaxSize()
+                .imePadding()
+                .padding(16.dp),
     ) {
         if (state.isLoading && state.messages.isEmpty() && !isEditMode) {
             InitialLoadingState(
                 photoUri = photoUri,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
         } else {
             ChatContent(
@@ -105,21 +105,21 @@ fun MealEditScreen(
                 currentComponents = state.currentComponents,
                 currentQuestion = state.currentQuestion,
                 mealName = state.mealName,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             )
         }
 
         if (state.error != null) {
             ErrorDisplay(
                 error = state.error!!,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
             )
         }
 
         ChatInput(
             onSend = { text -> viewModel.sendFollowUp(text) },
             enabled = !state.isLoading,
-            modifier = Modifier.padding(vertical = 8.dp)
+            modifier = Modifier.padding(vertical = 8.dp),
         )
 
         if (isEditMode) {
@@ -130,18 +130,19 @@ fun MealEditScreen(
                     val components = state.currentComponents
                     val name = state.mealName ?: existingMeal?.meal?.description ?: "Edited Meal"
                     if (components != null) {
-                        val mealComponents = components.map {
-                            Triple(
-                                it.name,
-                                it.weightG,
-                                listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG)
-                            )
-                        }
+                        val mealComponents =
+                            components.map {
+                                Triple(
+                                    it.name,
+                                    it.weightG,
+                                    listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG),
+                                )
+                            }
                         onUpdate(name, mealComponents)
                     }
                 },
                 onDelete = onDelete,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
             )
         } else {
             NewMealButtons(
@@ -152,13 +153,14 @@ fun MealEditScreen(
                     val components = state.currentComponents
                     val name = state.mealName ?: "Detected Meal"
                     if (components != null) {
-                        val mealComponents = components.map {
-                            Triple(
-                                it.name,
-                                it.weightG,
-                                listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG)
-                            )
-                        }
+                        val mealComponents =
+                            components.map {
+                                Triple(
+                                    it.name,
+                                    it.weightG,
+                                    listOf(it.energyKcal, it.proteinG, it.fatG, it.carbsG),
+                                )
+                            }
                         onUpdate(name, mealComponents)
                     }
                 },
@@ -166,7 +168,7 @@ fun MealEditScreen(
                     viewModel.retake()
                     onRetake()
                 },
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
             )
         }
     }
@@ -175,33 +177,34 @@ fun MealEditScreen(
 @Composable
 private fun InitialLoadingState(
     photoUri: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Image(
             painter = rememberAsyncImagePainter(File(photoUri)),
             contentDescription = "Captured meal",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-                .clip(MaterialTheme.shapes.medium),
-            contentScale = ContentScale.Crop
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .clip(MaterialTheme.shapes.medium),
+            contentScale = ContentScale.Crop,
         )
 
         Spacer(modifier = Modifier.height(24.dp))
 
         CircularProgressIndicator(
-            modifier = Modifier.size(48.dp)
+            modifier = Modifier.size(48.dp),
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
         Text(
             text = "Analyzing meal...",
-            style = MaterialTheme.typography.bodyLarge
+            style = MaterialTheme.typography.bodyLarge,
         )
     }
 }
@@ -213,21 +216,23 @@ private fun ChatContent(
     currentComponents: List<MealComponentDto>?,
     currentQuestion: String?,
     mealName: String?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
+        modifier =
+            modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
     ) {
         Image(
             painter = rememberAsyncImagePainter(File(photoUri)),
             contentDescription = "Captured meal",
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(150.dp)
-                .clip(MaterialTheme.shapes.medium),
-            contentScale = ContentScale.Crop
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .height(150.dp)
+                    .clip(MaterialTheme.shapes.medium),
+            contentScale = ContentScale.Crop,
         )
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -235,7 +240,7 @@ private fun ChatContent(
         messages.forEach { message ->
             ChatMessageItem(
                 message = message,
-                modifier = Modifier.padding(vertical = 4.dp)
+                modifier = Modifier.padding(vertical = 4.dp),
             )
         }
 
@@ -244,19 +249,19 @@ private fun ChatContent(
                 Text(
                     text = mealName,
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                    modifier = Modifier.padding(top = 8.dp, bottom = 4.dp),
                 )
             }
             MealComponentsList(
                 components = currentComponents,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
             )
         }
 
         if (currentQuestion != null) {
             QuestionDisplay(
                 question = currentQuestion,
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 8.dp),
             )
         }
     }
@@ -265,43 +270,46 @@ private fun ChatContent(
 @Composable
 private fun ChatMessageItem(
     message: MealDetectionMessage,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
-    val backgroundColor = if (message.isFromUser) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.surfaceVariant
-    }
+    val backgroundColor =
+        if (message.isFromUser) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.surfaceVariant
+        }
 
-    val textColor = if (message.isFromUser) {
-        MaterialTheme.colorScheme.onPrimary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    val textColor =
+        if (message.isFromUser) {
+            MaterialTheme.colorScheme.onPrimary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        }
 
-    val alignment = if (message.isFromUser) {
-        Alignment.End
-    } else {
-        Alignment.Start
-    }
+    val alignment =
+        if (message.isFromUser) {
+            Alignment.End
+        } else {
+            Alignment.Start
+        }
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = alignment
+        horizontalAlignment = alignment,
     ) {
         Box(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .background(
-                    color = backgroundColor,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(12.dp)
+            modifier =
+                Modifier
+                    .widthIn(max = 280.dp)
+                    .background(
+                        color = backgroundColor,
+                        shape = RoundedCornerShape(12.dp),
+                    ).padding(12.dp),
         ) {
             Text(
                 text = message.content,
                 color = textColor,
-                style = MaterialTheme.typography.bodyMedium
+                style = MaterialTheme.typography.bodyMedium,
             )
         }
     }
@@ -310,49 +318,51 @@ private fun ChatMessageItem(
 @Composable
 private fun MealComponentsList(
     components: List<MealComponentDto>,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+            ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         ) {
             Text(
                 text = "Detected Components:",
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             components.forEach { component ->
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Top
+                    verticalAlignment = Alignment.Top,
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = "${component.weightG.toInt()}g of ${component.name}")
                         Text(
                             text = "${component.proteinG.toInt()}g prot, ${component.fatG.toInt()}g fat, ${component.carbsG.toInt()}g carb",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
                             text = "${component.energyKcal.toInt()}",
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
                         )
                         Text(
                             text = "KCAL",
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -367,15 +377,15 @@ private fun MealComponentsList(
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 Text(
                     text = "Total:",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
                     text = "$totalCalories kcal (P:${totalProtein}g F:${totalFat}g C:${totalCarbs}g)",
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
             }
         }
@@ -385,27 +395,28 @@ private fun MealComponentsList(
 @Composable
 private fun QuestionDisplay(
     question: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.tertiaryContainer
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+            ),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         ) {
             Text(
                 text = "Clarification needed:",
                 style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = question,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                color = MaterialTheme.colorScheme.onTertiaryContainer,
             )
         }
     }
@@ -414,19 +425,20 @@ private fun QuestionDisplay(
 @Composable
 private fun ErrorDisplay(
     error: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.errorContainer,
+            ),
     ) {
         Text(
             text = error,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onErrorContainer,
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(16.dp),
         )
     }
 }
@@ -435,13 +447,13 @@ private fun ErrorDisplay(
 private fun ChatInput(
     onSend: (String) -> Unit,
     enabled: Boolean,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     var text by remember { mutableStateOf("") }
 
     Row(
         modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
     ) {
         OutlinedTextField(
             value = text,
@@ -450,7 +462,7 @@ private fun ChatInput(
             placeholder = { Text("Type your answer...") },
             enabled = enabled,
             singleLine = true,
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
         )
 
         Spacer(modifier = Modifier.width(8.dp))
@@ -463,16 +475,17 @@ private fun ChatInput(
                 }
             },
             enabled = enabled && text.isNotBlank(),
-            modifier = Modifier
-                .background(
-                    color = if (enabled && text.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray,
-                    shape = CircleShape
-                )
+            modifier =
+                Modifier
+                    .background(
+                        color = if (enabled && text.isNotBlank()) MaterialTheme.colorScheme.primary else Color.Gray,
+                        shape = CircleShape,
+                    ),
         ) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
                 contentDescription = "Send",
-                tint = Color.White
+                tint = Color.White,
             )
         }
     }
@@ -484,7 +497,7 @@ private fun EditModeButtons(
     isLoading: Boolean,
     onUpdate: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val canSubmit = currentComponents != null && currentComponents.isNotEmpty() && !isLoading
 
@@ -492,7 +505,7 @@ private fun EditModeButtons(
         Button(
             onClick = onUpdate,
             modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit
+            enabled = canSubmit,
         ) {
             Text("Update")
         }
@@ -502,7 +515,7 @@ private fun EditModeButtons(
         Button(
             onClick = onDelete,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+            enabled = !isLoading,
         ) {
             Text("Delete")
         }
@@ -516,7 +529,7 @@ private fun NewMealButtons(
     isLoading: Boolean,
     onSubmit: () -> Unit,
     onRetake: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val canSubmit = currentComponents != null && currentComponents.isNotEmpty() && !isLoading
 
@@ -524,7 +537,7 @@ private fun NewMealButtons(
         Button(
             onClick = onSubmit,
             modifier = Modifier.fillMaxWidth(),
-            enabled = canSubmit
+            enabled = canSubmit,
         ) {
             Text("Submit")
         }
@@ -534,7 +547,7 @@ private fun NewMealButtons(
         Button(
             onClick = onRetake,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !isLoading
+            enabled = !isLoading,
         ) {
             Text("Retake")
         }

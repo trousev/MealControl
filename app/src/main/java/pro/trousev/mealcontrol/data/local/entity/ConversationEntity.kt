@@ -9,5 +9,5 @@ data class ConversationEntity(
     val id: Long = 0,
     val title: String,
     val createdAt: Long,
-    val isMealDetection: Boolean = false
+    val isMealDetection: Boolean = false,
 )

@@ -12,10 +12,10 @@ import androidx.room.PrimaryKey
             entity = ConversationEntity::class,
             parentColumns = ["id"],
             childColumns = ["conversationId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("conversationId")]
+    indices = [Index("conversationId")],
 )
 data class MessageEntity(
     @PrimaryKey(autoGenerate = true)
@@ -23,5 +23,5 @@ data class MessageEntity(
     val conversationId: Long,
     val content: String,
     val isFromUser: Boolean,
-    val timestamp: Long
+    val timestamp: Long,
 )

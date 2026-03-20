@@ -46,7 +46,7 @@ import kotlin.coroutines.suspendCoroutine
 @Composable
 fun ScanMealScreen(
     onPhotoCaptured: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -55,16 +55,17 @@ fun ScanMealScreen(
         mutableStateOf(
             ContextCompat.checkSelfPermission(
                 context,
-                Manifest.permission.CAMERA
-            ) == PackageManager.PERMISSION_GRANTED
+                Manifest.permission.CAMERA,
+            ) == PackageManager.PERMISSION_GRANTED,
         )
     }
 
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        hasCameraPermission = isGranted
-    }
+    val permissionLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.RequestPermission(),
+        ) { isGranted ->
+            hasCameraPermission = isGranted
+        }
 
     LaunchedEffect(Unit) {
         if (!hasCameraPermission) {
@@ -78,13 +79,16 @@ fun ScanMealScreen(
     LaunchedEffect(hasCameraPermission) {
         if (hasCameraPermission) {
             val cameraProvider = context.getCameraProvider()
-            val preview = Preview.Builder().build().also {
-                it.surfaceProvider = previewView.surfaceProvider
-            }
+            val preview =
+                Preview.Builder().build().also {
+                    it.surfaceProvider = previewView.surfaceProvider
+                }
 
-            imageCapture = ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                .build()
+            imageCapture =
+                ImageCapture
+                    .Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
 
             try {
                 cameraProvider.unbindAll()
@@ -92,7 +96,7 @@ fun ScanMealScreen(
                     lifecycleOwner,
                     CameraSelector.DEFAULT_BACK_CAMERA,
                     preview,
-                    imageCapture
+                    imageCapture,
                 )
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -101,34 +105,37 @@ fun ScanMealScreen(
     }
 
     Scaffold(
-        modifier = modifier
+        modifier = modifier,
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             if (hasCameraPermission) {
                 AndroidView(
                     factory = { previewView },
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
                 )
 
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(bottom = 32.dp),
-                    contentAlignment = Alignment.BottomCenter
+                    modifier =
+                        Modifier
+                            .fillMaxSize()
+                            .padding(bottom = 32.dp),
+                    contentAlignment = Alignment.BottomCenter,
                 ) {
                     FloatingActionButton(
                         onClick = {
                             imageCapture?.let { capture ->
-                                val photoFile = File(
-                                    context.filesDir,
-                                    "meal_photos/photo_${System.currentTimeMillis()}.jpg"
-                                ).apply {
-                                    parentFile?.mkdirs()
-                                }
+                                val photoFile =
+                                    File(
+                                        context.filesDir,
+                                        "meal_photos/photo_${System.currentTimeMillis()}.jpg",
+                                    ).apply {
+                                        parentFile?.mkdirs()
+                                    }
                                 val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
                                 capture.takePicture(
                                     outputOptions,
@@ -141,25 +148,25 @@ fun ScanMealScreen(
                                         override fun onError(exception: ImageCaptureException) {
                                             exception.printStackTrace()
                                         }
-                                    }
+                                    },
                                 )
                             }
                         },
                         shape = CircleShape,
                         containerColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(72.dp)
+                        modifier = Modifier.size(72.dp),
                     ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = "Capture",
-                            modifier = Modifier.size(36.dp)
+                            modifier = Modifier.size(36.dp),
                         )
                     }
                 }
             } else {
                 Box(
                     modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
+                    contentAlignment = Alignment.Center,
                 ) {
                     Text("Camera permission required")
                 }
@@ -173,7 +180,7 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
         ProcessCameraProvider.getInstance(this).also { future ->
             future.addListener(
                 { continuation.resume(future.get()) },
-                ContextCompat.getMainExecutor(this)
+                ContextCompat.getMainExecutor(this),
             )
         }
     }

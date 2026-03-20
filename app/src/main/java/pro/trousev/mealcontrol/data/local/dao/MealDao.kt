@@ -5,8 +5,8 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
-import pro.trousev.mealcontrol.data.local.entity.MealEntity
 import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
+import pro.trousev.mealcontrol.data.local.entity.MealEntity
 import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 
 @Dao
@@ -28,8 +28,14 @@ interface MealDao {
     @Query("DELETE FROM meals WHERE id = :mealId")
     suspend fun deleteMeal(mealId: Long)
 
-    @Query("UPDATE meals SET description = :description, timestamp = :timestamp WHERE id = :mealId")
-    suspend fun updateMeal(mealId: Long, description: String, timestamp: Long)
+    @Query(
+        "UPDATE meals SET description = :description, timestamp = :timestamp WHERE id = :mealId",
+    )
+    suspend fun updateMeal(
+        mealId: Long,
+        description: String,
+        timestamp: Long,
+    )
 
     @Query("DELETE FROM meal_components WHERE mealId = :mealId")
     suspend fun deleteComponentsByMealId(mealId: Long)

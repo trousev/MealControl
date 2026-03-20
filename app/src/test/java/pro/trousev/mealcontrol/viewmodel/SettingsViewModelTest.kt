@@ -1,7 +1,10 @@
 package pro.trousev.mealcontrol.viewmodel
 
 import android.app.Application
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -10,7 +13,6 @@ import org.robolectric.RuntimeEnvironment
 
 @RunWith(RobolectricTestRunner::class)
 class SettingsViewModelTest {
-
     private lateinit var application: Application
 
     @Before

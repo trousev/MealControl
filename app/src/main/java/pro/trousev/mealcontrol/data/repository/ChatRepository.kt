@@ -17,15 +17,14 @@ import java.util.Locale
 
 data class ConversationWithLastMessage(
     val conversation: ConversationEntity,
-    val lastMessage: MessageEntity?
+    val lastMessage: MessageEntity?,
 )
 
 class ChatRepository(
     private val conversationDao: ConversationDao,
     private val messageDao: MessageDao,
-    private val userSettingsDao: UserSettingsDao
+    private val userSettingsDao: UserSettingsDao,
 ) {
-
     suspend fun getAllConversations(): List<ConversationWithLastMessage> {
         val conversations = conversationDao.getChatConversations()
         return conversations.map { conversation ->
@@ -34,30 +33,33 @@ class ChatRepository(
         }
     }
 
-    suspend fun getConversation(conversationId: Long): ConversationWithMessages? {
-        return conversationDao.getConversationWithMessages(conversationId)
-    }
+    suspend fun getConversation(conversationId: Long): ConversationWithMessages? = conversationDao.getConversationWithMessages(conversationId)
 
     suspend fun createConversation(): Long {
         val timestamp = System.currentTimeMillis()
         val dateFormat = SimpleDateFormat("MMM dd", Locale.US)
         val title = "Chat - ${dateFormat.format(Date(timestamp))}"
-        
-        val conversation = ConversationEntity(
-            title = title,
-            createdAt = timestamp
-        )
+
+        val conversation =
+            ConversationEntity(
+                title = title,
+                createdAt = timestamp,
+            )
         return conversationDao.insertConversation(conversation)
     }
 
-    suspend fun sendMessage(conversationId: Long, content: String): MessageEntity {
+    suspend fun sendMessage(
+        conversationId: Long,
+        content: String,
+    ): MessageEntity {
         val timestamp = System.currentTimeMillis()
-        val message = MessageEntity(
-            conversationId = conversationId,
-            content = content,
-            isFromUser = true,
-            timestamp = timestamp
-        )
+        val message =
+            MessageEntity(
+                conversationId = conversationId,
+                content = content,
+                isFromUser = true,
+                timestamp = timestamp,
+            )
         messageDao.insertMessage(message)
 
         val botReply = getBotReply(conversationId, content, timestamp)
@@ -67,7 +69,11 @@ class ChatRepository(
         return message
     }
 
-    private suspend fun getBotReply(conversationId: Long, userMessage: String, timestamp: Long): MessageEntity {
+    private suspend fun getBotReply(
+        conversationId: Long,
+        userMessage: String,
+        timestamp: Long,
+    ): MessageEntity {
         val settings = userSettingsDao.getSettings()
         val apiKey = settings?.openAiApiKey ?: ""
 
@@ -76,7 +82,7 @@ class ChatRepository(
                 conversationId = conversationId,
                 content = "OpenAI API key not configured. Please set it in Settings to enable chat.",
                 isFromUser = false,
-                timestamp = timestamp + 1
+                timestamp = timestamp + 1,
             )
         }
 
@@ -97,7 +103,7 @@ class ChatRepository(
                             conversationId = conversationId,
                             content = result.getOrNull() ?: "Unknown error occurred",
                             isFromUser = false,
-                            timestamp = timestamp + 1
+                            timestamp = timestamp + 1,
                         )
                     }
                     result.isFailure -> {
@@ -106,7 +112,7 @@ class ChatRepository(
                             conversationId = conversationId,
                             content = "Sorry, something went wrong: $errorMessage. Please try again.",
                             isFromUser = false,
-                            timestamp = timestamp + 1
+                            timestamp = timestamp + 1,
                         )
                     }
                     else -> {
@@ -114,7 +120,7 @@ class ChatRepository(
                             conversationId = conversationId,
                             content = "Sorry, something went wrong. Please try again.",
                             isFromUser = false,
-                            timestamp = timestamp + 1
+                            timestamp = timestamp + 1,
                         )
                     }
                 }
@@ -123,13 +129,16 @@ class ChatRepository(
                     conversationId = conversationId,
                     content = "Sorry, something went wrong: ${e.message}. Please try again.",
                     isFromUser = false,
-                    timestamp = timestamp + 1
+                    timestamp = timestamp + 1,
                 )
             }
         }
     }
 
-    private fun buildChatMessages(history: List<MessageEntity>, newUserMessage: String): List<ChatMessage> {
+    private fun buildChatMessages(
+        history: List<MessageEntity>,
+        newUserMessage: String,
+    ): List<ChatMessage> {
         val messages = mutableListOf<ChatMessage>()
 
         messages.add(ChatMessage(role = ChatRole.System, content = OpenAiService.SYSTEM_PROMPT))

@@ -7,7 +7,7 @@ data class MealWithComponents(
     @Embedded val meal: MealEntity,
     @Relation(
         parentColumn = "id",
-        entityColumn = "mealId"
+        entityColumn = "mealId",
     )
-    val components: List<MealComponentEntity>
+    val components: List<MealComponentEntity>,
 )

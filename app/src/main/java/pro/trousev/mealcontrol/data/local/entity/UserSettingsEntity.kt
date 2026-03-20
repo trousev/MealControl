@@ -17,5 +17,5 @@ data class UserSettingsEntity(
     val customProteinPercent: Int = 40,
     val customFatPercent: Int = 30,
     val customCarbPercent: Int = 30,
-    val openAiApiKey: String = ""
+    val openAiApiKey: String = "",
 )

@@ -25,32 +25,41 @@ import kotlinx.serialization.json.Json
 private const val TAG = "OpenAiService"
 
 class OpenAiService(
-    private val apiKey: String
+    private val apiKey: String,
 ) {
     private val openAI: OpenAI = OpenAI(token = apiKey)
-    private val httpClient = HttpClient(OkHttp) {
-        install(ContentNegotiation) {
-            json(Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            })
-        }
-        install(HttpTimeout) {
-            requestTimeoutMillis = 120000
-            socketTimeoutMillis = 120000
-            connectTimeoutMillis = 30000
-        }
-    }
-
-    suspend fun chat(messages: List<ChatMessage>): Result<String> {
-        return try {
-            val completion: ChatCompletion = openAI.chatCompletion(
-                request = com.aallam.openai.api.chat.ChatCompletionRequest(
-                    model = ModelId("gpt-5-mini-2025-08-07"),
-                    messages = messages
+    private val httpClient =
+        HttpClient(OkHttp) {
+            install(ContentNegotiation) {
+                json(
+                    Json {
+                        ignoreUnknownKeys = true
+                        isLenient = true
+                    },
                 )
-            )
-            val response = completion.choices.firstOrNull()?.message?.content
+            }
+            install(HttpTimeout) {
+                requestTimeoutMillis = 120000
+                socketTimeoutMillis = 120000
+                connectTimeoutMillis = 30000
+            }
+        }
+
+    suspend fun chat(messages: List<ChatMessage>): Result<String> =
+        try {
+            val completion: ChatCompletion =
+                openAI.chatCompletion(
+                    request =
+                        com.aallam.openai.api.chat.ChatCompletionRequest(
+                            model = ModelId("gpt-5-mini-2025-08-07"),
+                            messages = messages,
+                        ),
+                )
+            val response =
+                completion.choices
+                    .firstOrNull()
+                    ?.message
+                    ?.content
             if (response != null) {
                 Result.success(response)
             } else {
@@ -59,66 +68,75 @@ class OpenAiService(
         } catch (e: Exception) {
             Result.failure(e)
         }
-    }
 
     suspend fun detectMealFromImage(
         imageBase64: String,
         promptId: String,
         lastResponseJson: String? = null,
-        userFollowup: String? = null
+        userFollowup: String? = null,
     ): Result<MealDetectionResponse> {
         return try {
             val contentItems = mutableListOf<ContentItem>()
 
             if (lastResponseJson != null && userFollowup != null) {
-                contentItems.add(ContentItem(
-                    type = "input_text",
-                    text = "Previous response:\n$lastResponseJson\n\nUser question: $userFollowup"
-                ))
+                contentItems.add(
+                    ContentItem(
+                        type = "input_text",
+                        text = "Previous response:\n$lastResponseJson\n\nUser question: $userFollowup",
+                    ),
+                )
             } else {
-                val imageContent = ContentItem(
-                    type = "input_image",
-                    imageUrl = "data:image/jpeg;base64," + imageBase64
-                )
+                val imageContent =
+                    ContentItem(
+                        type = "input_image",
+                        imageUrl = "data:image/jpeg;base64," + imageBase64,
+                    )
                 contentItems.add(imageContent)
-                contentItems.add(ContentItem(
-                    type = "input_text",
-                    text = "Please analyze this meal image and identify all food components with their nutritional information."
-                ))
-            }
-
-            val inputList = listOf(
-                InputMessage(
-                    role = "user",
-                    content = contentItems
+                contentItems.add(
+                    ContentItem(
+                        type = "input_text",
+                        text = "Please analyze this meal image and identify all food components with their nutritional information.",
+                    ),
                 )
-            )
-
-            val requestBody = MealDetectionRequest(
-                model = "gpt-5-mini-2025-08-07",
-                input = inputList,
-                prompt = PromptInfo(id = promptId, version = "5")
-            )
-
-            val response: HttpResponse = httpClient.post("https://api.openai.com/v1/responses") {
-                contentType(ContentType.Application.Json)
-                header("Authorization", "Bearer $apiKey")
-                setBody(requestBody)
             }
+
+            val inputList =
+                listOf(
+                    InputMessage(
+                        role = "user",
+                        content = contentItems,
+                    ),
+                )
+
+            val requestBody =
+                MealDetectionRequest(
+                    model = "gpt-5-mini-2025-08-07",
+                    input = inputList,
+                    prompt = PromptInfo(id = promptId, version = "5"),
+                )
+
+            val response: HttpResponse =
+                httpClient.post("https://api.openai.com/v1/responses") {
+                    contentType(ContentType.Application.Json)
+                    header("Authorization", "Bearer $apiKey")
+                    setBody(requestBody)
+                }
 
             val responseText = response.body<String>()
-            
+
             Log.d(TAG, "Raw response: $responseText")
-            
+
             if (response.status.value >= 400) {
                 return Result.failure(Exception("API Error (${response.status.value}): $responseText"))
             }
 
-            val responseBody: MealDetectionResponse = kotlinx.serialization.json.Json {
-                ignoreUnknownKeys = true
-                isLenient = true
-            }.decodeFromString<MealDetectionResponse>(responseText)
-            
+            val responseBody: MealDetectionResponse =
+                kotlinx.serialization.json
+                    .Json {
+                        ignoreUnknownKeys = true
+                        isLenient = true
+                    }.decodeFromString<MealDetectionResponse>(responseText)
+
             Result.success(responseBody)
         } catch (e: Exception) {
             Log.e(TAG, "Exception: ${e.message}", e)
@@ -127,7 +145,7 @@ class OpenAiService(
     }
 
     companion object {
-        const val SYSTEM_PROMPT = """You are a helpful nutrition and weight loss assistant. 
+        const val SYSTEM_PROMPT = """You are a helpful nutrition and weight loss assistant.
 You specialize in helping users with:
 - Meal planning and calorie counting
 - Weight loss strategies
@@ -135,15 +153,16 @@ You specialize in helping users with:
 - Macronutrient balance
 - Exercise recommendations
 
-Provide practical, evidence-based advice. Always consider the user's personal context 
-(weight goals, activity level, dietary preferences). Be concise but thorough. 
+Provide practical, evidence-based advice. Always consider the user's personal context
+(weight goals, activity level, dietary preferences). Be concise but thorough.
 If you don't know something, admit it honestly."""
 
-        fun estimateTokens(text: String): Int {
-            return text.length / 4
-        }
+        fun estimateTokens(text: String): Int = text.length / 4
 
-        fun truncateToTokenLimit(messages: List<ChatMessage>, maxTokens: Int = 100000): List<ChatMessage> {
+        fun truncateToTokenLimit(
+            messages: List<ChatMessage>,
+            maxTokens: Int = 100000,
+        ): List<ChatMessage> {
             var totalTokens = 0
             val result = mutableListOf<ChatMessage>()
 
@@ -179,40 +198,40 @@ If you don't know something, admit it honestly."""
 data class MealDetectionRequest(
     val model: String? = null,
     val input: List<InputMessage>? = null,
-    val prompt: PromptInfo? = null
+    val prompt: PromptInfo? = null,
 )
 
 @Serializable
 data class InputMessage(
     val role: String,
-    val content: List<ContentItem>
+    val content: List<ContentItem>,
 )
 
 @Serializable
 data class ContentItem(
     val type: String,
     val text: String? = null,
-    @SerialName("image_url") val imageUrl: String? = null
+    @SerialName("image_url") val imageUrl: String? = null,
 )
 
 @Serializable
 data class PromptInfo(
     val id: String,
-    val version: String
+    val version: String,
 )
 
 @Serializable
 data class MealDetectionResponse(
     val id: String? = null,
     val output: List<OutputItem>? = null,
-    val error: String? = null
+    val error: String? = null,
 )
 
 @Serializable
 data class MealDetectionResult(
     val name: String,
     val components: List<MealComponentDto>,
-    val followup: String
+    val followup: String,
 )
 
 @Serializable
@@ -222,18 +241,18 @@ data class OutputItem(
     val status: String? = null,
     val text: String? = null,
     val content: List<OutputContentItem>? = null,
-    @SerialName("message") val message: MessageContent? = null
+    @SerialName("message") val message: MessageContent? = null,
 )
 
 @Serializable
 data class OutputContentItem(
     val type: String? = null,
-    val text: String? = null
+    val text: String? = null,
 )
 
 @Serializable
 data class MessageContent(
-    val content: String? = null
+    val content: String? = null,
 )
 
 @Serializable
@@ -243,24 +262,25 @@ data class MealComponentDto(
     @SerialName("energy_kcal") val energyKcal: Double,
     @SerialName("fat_g") val fatG: Double,
     @SerialName("protein_g") val proteinG: Double,
-    @SerialName("carbs_g") val carbsG: Double
+    @SerialName("carbs_g") val carbsG: Double,
 )
 
 data class ChatHistoryItem(
     val content: String,
-    val isFromUser: Boolean
+    val isFromUser: Boolean,
 )
 
 fun parseMealDetectionResult(response: MealDetectionResponse?): MealDetectionResult? {
     if (response == null) return null
     return try {
         val messageOutput = response.output?.find { it.type == "message" }
-        val responseText = messageOutput?.content?.firstOrNull()?.text 
-            ?: messageOutput?.text
-            ?: return null
-        
+        val responseText =
+            messageOutput?.content?.firstOrNull()?.text
+                ?: messageOutput?.text
+                ?: return null
+
         Log.d(TAG, "responseText length: ${responseText.length}")
-        
+
         val json = Json { ignoreUnknownKeys = true }
         val result = json.decodeFromString<MealDetectionResult>(responseText)
         Log.d(TAG, "Parsed successfully: name=${result.name}, components=${result.components.size}")

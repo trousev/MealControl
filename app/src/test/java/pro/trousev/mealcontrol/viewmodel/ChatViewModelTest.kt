@@ -1,7 +1,10 @@
 package pro.trousev.mealcontrol.viewmodel
 
 import android.app.Application
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -12,7 +15,6 @@ import pro.trousev.mealcontrol.data.local.TestDatabaseFactory
 
 @RunWith(RobolectricTestRunner::class)
 class ChatViewModelTest {
-
     private lateinit var application: Application
     private lateinit var database: MealControlDatabase
 

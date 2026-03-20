@@ -13,19 +13,22 @@ object ImageCompression {
 
     fun compressImage(filePath: String): ByteArray {
         val file = File(filePath)
-        val options = BitmapFactory.Options().apply {
-            inJustDecodeBounds = true
-        }
+        val options =
+            BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
         BitmapFactory.decodeFile(filePath, options)
 
         val scale = calculateInSampleSize(options, MAX_DIMENSION, MAX_DIMENSION)
 
-        val decodeOptions = BitmapFactory.Options().apply {
-            inSampleSize = scale
-        }
+        val decodeOptions =
+            BitmapFactory.Options().apply {
+                inSampleSize = scale
+            }
 
-        var bitmap = BitmapFactory.decodeFile(filePath, decodeOptions) ?: 
-            throw IllegalArgumentException("Failed to decode image at $filePath")
+        var bitmap =
+            BitmapFactory.decodeFile(filePath, decodeOptions)
+                ?: throw IllegalArgumentException("Failed to decode image at $filePath")
 
         bitmap = rotateImageIfRequired(bitmap, filePath)
 
@@ -41,7 +44,11 @@ object ImageCompression {
         return outputStream.toByteArray()
     }
 
-    private fun calculateInSampleSize(options: BitmapFactory.Options, reqWidth: Int, reqHeight: Int): Int {
+    private fun calculateInSampleSize(
+        options: BitmapFactory.Options,
+        reqWidth: Int,
+        reqHeight: Int,
+    ): Int {
         val (height: Int, width: Int) = options.run { outHeight to outWidth }
         var inSampleSize = 1
 
@@ -57,7 +64,10 @@ object ImageCompression {
         return inSampleSize
     }
 
-    private fun scaleBitmap(bitmap: Bitmap, maxDimension: Int): Bitmap {
+    private fun scaleBitmap(
+        bitmap: Bitmap,
+        maxDimension: Int,
+    ): Bitmap {
         val width = bitmap.width
         val height = bitmap.height
 
@@ -65,11 +75,12 @@ object ImageCompression {
             return bitmap
         }
 
-        val scale = if (width > height) {
-            maxDimension.toFloat() / width
-        } else {
-            maxDimension.toFloat() / height
-        }
+        val scale =
+            if (width > height) {
+                maxDimension.toFloat() / width
+            } else {
+                maxDimension.toFloat() / height
+            }
 
         val newWidth = (width * scale).toInt()
         val newHeight = (height * scale).toInt()
@@ -77,19 +88,24 @@ object ImageCompression {
         return Bitmap.createScaledBitmap(bitmap, newWidth, newHeight, true)
     }
 
-    private fun rotateImageIfRequired(bitmap: Bitmap, filePath: String): Bitmap {
+    private fun rotateImageIfRequired(
+        bitmap: Bitmap,
+        filePath: String,
+    ): Bitmap {
         val exif = ExifInterface(filePath)
-        val orientation = exif.getAttributeInt(
-            ExifInterface.TAG_ORIENTATION,
-            ExifInterface.ORIENTATION_NORMAL
-        )
+        val orientation =
+            exif.getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL,
+            )
 
-        val rotation = when (orientation) {
-            ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-            ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-            ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-            else -> return bitmap
-        }
+        val rotation =
+            when (orientation) {
+                ExifInterface.ORIENTATION_ROTATE_90 -> 90f
+                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                else -> return bitmap
+            }
 
         val matrix = Matrix().apply { postRotate(rotation) }
         val rotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)

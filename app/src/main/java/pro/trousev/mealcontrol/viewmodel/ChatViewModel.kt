@@ -3,22 +3,25 @@ package pro.trousev.mealcontrol.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
-import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
-import pro.trousev.mealcontrol.data.repository.ChatRepository
-import pro.trousev.mealcontrol.data.repository.ConversationWithLastMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
+import pro.trousev.mealcontrol.data.repository.ChatRepository
+import pro.trousev.mealcontrol.data.repository.ConversationWithLastMessage
 
-class ChatViewModel(application: Application) : AndroidViewModel(application) {
+class ChatViewModel(
+    application: Application,
+) : AndroidViewModel(application) {
     private val database = MealControlDatabase.getDatabase(application)
-    private val repository = ChatRepository(
-        database.conversationDao(),
-        database.messageDao(),
-        database.userSettingsDao()
-    )
+    private val repository =
+        ChatRepository(
+            database.conversationDao(),
+            database.messageDao(),
+            database.userSettingsDao(),
+        )
 
     private val _conversations = MutableStateFlow<List<ConversationWithLastMessage>>(emptyList())
     val conversations: StateFlow<List<ConversationWithLastMessage>> = _conversations.asStateFlow()
@@ -53,7 +56,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun sendMessage(conversationId: Long, content: String) {
+    fun sendMessage(
+        conversationId: Long,
+        content: String,
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             repository.sendMessage(conversationId, content)

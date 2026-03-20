@@ -7,7 +7,4 @@ max_line_length = off
 insert_final_newline = true
 trim_trailing_whitespace = true
 end_of_line = lf
-
-ktlint_code_style = kotlin
-
-ktlint_disabled_rules = no-wildcard-imports
+ktlint_standard_function-naming = disabled
