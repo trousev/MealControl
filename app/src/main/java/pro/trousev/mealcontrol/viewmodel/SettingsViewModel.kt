@@ -1,7 +1,6 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
 import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
 
@@ -68,11 +67,8 @@ data class SettingsFormState(
     val customDistributionError: String? = null,
 )
 
-class SettingsViewModel(
-    application: Application,
-) : AndroidViewModel(application) {
-    private val database = MealControlDatabase.getDatabase(application)
-    private val repository = UserSettingsRepository(database.userSettingsDao())
+class SettingsViewModel : ViewModel() {
+    private val repository: UserSettingsRepository = ServiceLocator.provideUserSettingsRepository()
 
     private val _formState = MutableStateFlow(SettingsFormState())
     val formState: StateFlow<SettingsFormState> = _formState.asStateFlow()

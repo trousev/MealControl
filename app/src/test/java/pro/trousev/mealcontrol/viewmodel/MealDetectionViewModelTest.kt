@@ -1,6 +1,7 @@
 package pro.trousev.mealcontrol.viewmodel
 
 import android.app.Application
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -11,12 +12,14 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.remote.MealComponentDto
 import pro.trousev.mealcontrol.data.remote.MealDetectionResponse
 import pro.trousev.mealcontrol.data.remote.MealDetectionResult
 import pro.trousev.mealcontrol.data.remote.OutputContentItem
 import pro.trousev.mealcontrol.data.remote.OutputItem
 import pro.trousev.mealcontrol.data.remote.parseMealDetectionResult
+import pro.trousev.mealcontrol.util.SecureStorage
 
 @RunWith(RobolectricTestRunner::class)
 class MealDetectionViewModelTest {
@@ -25,17 +28,29 @@ class MealDetectionViewModelTest {
     @Before
     fun setup() {
         application = RuntimeEnvironment.getApplication()
+        val mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String = ""
+            }
+        ServiceLocator.initialize(application, mockSecureStorage)
+    }
+
+    @After
+    fun tearDown() {
+        ServiceLocator.resetForTesting()
     }
 
     @Test
     fun mealDetectionViewModel_creation_doesNotCrash() {
-        val viewModel = MealDetectionViewModel(application)
+        val viewModel = MealDetectionViewModel()
         assertNotNull(viewModel.state)
     }
 
     @Test
     fun mealDetectionViewModel_initialState_hasDefaultValues() {
-        val viewModel = MealDetectionViewModel(application)
+        val viewModel = MealDetectionViewModel()
         val state = viewModel.state.value
 
         assertEquals("", state.photoUri)

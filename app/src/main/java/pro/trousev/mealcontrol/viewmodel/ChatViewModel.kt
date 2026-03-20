@@ -1,27 +1,18 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
 import pro.trousev.mealcontrol.data.repository.ChatRepository
 import pro.trousev.mealcontrol.data.repository.ConversationWithLastMessage
 
-class ChatViewModel(
-    application: Application,
-) : AndroidViewModel(application) {
-    private val database = MealControlDatabase.getDatabase(application)
-    private val repository =
-        ChatRepository(
-            database.conversationDao(),
-            database.messageDao(),
-            database.userSettingsDao(),
-        )
+class ChatViewModel : ViewModel() {
+    private val repository: ChatRepository = ServiceLocator.provideChatRepository()
 
     private val _conversations = MutableStateFlow<List<ConversationWithLastMessage>>(emptyList())
     val conversations: StateFlow<List<ConversationWithLastMessage>> = _conversations.asStateFlow()
