@@ -9,6 +9,7 @@ import pro.trousev.mealcontrol.ui.theme.MealControlTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        ServiceLocator.initialize(this)
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()

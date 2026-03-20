@@ -1,9 +1,8 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import android.app.Application
 import android.util.Base64
 import android.util.Log
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,7 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.ServiceLocator
+import pro.trousev.mealcontrol.data.local.dao.ConversationDao
+import pro.trousev.mealcontrol.data.local.dao.MessageDao
+import pro.trousev.mealcontrol.data.local.dao.UserSettingsDao
 import pro.trousev.mealcontrol.data.local.entity.ConversationEntity
 import pro.trousev.mealcontrol.data.local.entity.MessageEntity
 import pro.trousev.mealcontrol.data.remote.ChatHistoryItem
@@ -49,11 +51,10 @@ data class MealDetectionMessage(
     val timestamp: Long
 )
 
-class MealDetectionViewModel(application: Application) : AndroidViewModel(application) {
-    private val database = MealControlDatabase.getDatabase(application)
-    private val userSettingsDao = database.userSettingsDao()
-    private val conversationDao = database.conversationDao()
-    private val messageDao = database.messageDao()
+class MealDetectionViewModel : ViewModel() {
+    private val userSettingsDao: UserSettingsDao = ServiceLocator.provideDatabase().userSettingsDao()
+    private val conversationDao: ConversationDao = ServiceLocator.provideDatabase().conversationDao()
+    private val messageDao: MessageDao = ServiceLocator.provideDatabase().messageDao()
 
     private val _state = MutableStateFlow(MealDetectionState())
     val state: StateFlow<MealDetectionState> = _state.asStateFlow()
