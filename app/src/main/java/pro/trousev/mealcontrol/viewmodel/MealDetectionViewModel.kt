@@ -20,7 +20,10 @@ import pro.trousev.mealcontrol.data.remote.MealDetectionResponse
 import pro.trousev.mealcontrol.data.remote.MealDetectionResult
 import pro.trousev.mealcontrol.data.remote.OpenAiService
 import pro.trousev.mealcontrol.data.remote.parseMealDetectionResult
+import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
+import pro.trousev.mealcontrol.util.ApiKeyManager
 import pro.trousev.mealcontrol.util.ImageCompression
+import pro.trousev.mealcontrol.util.SecureStorage
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -49,9 +52,12 @@ data class MealDetectionMessage(
     val timestamp: Long
 )
 
-class MealDetectionViewModel(application: Application) : AndroidViewModel(application) {
+class MealDetectionViewModel(
+    application: Application,
+    secureStorage: SecureStorage = ApiKeyManager(application)
+) : AndroidViewModel(application) {
     private val database = MealControlDatabase.getDatabase(application)
-    private val userSettingsDao = database.userSettingsDao()
+    private val userSettingsRepository = UserSettingsRepository(database.userSettingsDao(), secureStorage)
     private val conversationDao = database.conversationDao()
     private val messageDao = database.messageDao()
 
@@ -84,7 +90,7 @@ class MealDetectionViewModel(application: Application) : AndroidViewModel(applic
     }
 
     private suspend fun analyzePhoto(userFollowup: String? = null) {
-        val settings = userSettingsDao.getSettings()
+        val settings = userSettingsRepository.getSettings()
         val apiKey = settings?.openAiApiKey ?: ""
 
         if (apiKey.isBlank()) {

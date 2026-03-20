@@ -119,6 +119,7 @@ dependencies {
     implementation(libs.androidx.exifinterface)
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.splashscreen)
+    implementation(libs.androidx.security.crypto)
     testImplementation(libs.junit)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.room.ktx)

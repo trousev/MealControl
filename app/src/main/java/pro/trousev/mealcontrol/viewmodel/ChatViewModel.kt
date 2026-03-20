@@ -7,17 +7,24 @@ import pro.trousev.mealcontrol.data.local.MealControlDatabase
 import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
 import pro.trousev.mealcontrol.data.repository.ChatRepository
 import pro.trousev.mealcontrol.data.repository.ConversationWithLastMessage
+import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
+import pro.trousev.mealcontrol.util.ApiKeyManager
+import pro.trousev.mealcontrol.util.SecureStorage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class ChatViewModel(application: Application) : AndroidViewModel(application) {
+class ChatViewModel(
+    application: Application,
+    secureStorage: SecureStorage = ApiKeyManager(application)
+) : AndroidViewModel(application) {
     private val database = MealControlDatabase.getDatabase(application)
+    private val userSettingsRepository = UserSettingsRepository(database.userSettingsDao(), secureStorage)
     private val repository = ChatRepository(
         database.conversationDao(),
         database.messageDao(),
-        database.userSettingsDao()
+        userSettingsRepository
     )
 
     private val _conversations = MutableStateFlow<List<ConversationWithLastMessage>>(emptyList())
