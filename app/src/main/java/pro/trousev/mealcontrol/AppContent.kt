@@ -20,9 +20,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavBackStackEntry
-import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -46,21 +43,22 @@ fun AppContent() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    
+
     val context = LocalContext.current
     val mealViewModel: MealViewModel = viewModel()
     val chatViewModel: ChatViewModel = viewModel()
     val settingsViewModel: SettingsViewModel = viewModel()
 
-    val selectedTab = when {
-        currentRoute == Screen.Meals.route -> AppTab.MEALS
-        currentRoute == Screen.ConversationsList.route || 
-        currentRoute?.startsWith("chat/") == true -> AppTab.CHAT
-        currentRoute == Screen.Settings.route -> AppTab.SETTINGS
-        currentRoute == Screen.ScanMeal.route -> AppTab.MEALS
-        currentRoute?.startsWith("meal_edit/") == true -> AppTab.MEALS
-        else -> AppTab.MEALS
-    }
+    val selectedTab =
+        when {
+            currentRoute == Screen.Meals.route -> AppTab.MEALS
+            currentRoute == Screen.ConversationsList.route ||
+                currentRoute?.startsWith("chat/") == true -> AppTab.CHAT
+            currentRoute == Screen.Settings.route -> AppTab.SETTINGS
+            currentRoute == Screen.ScanMeal.route -> AppTab.MEALS
+            currentRoute?.startsWith("meal_edit/") == true -> AppTab.MEALS
+            else -> AppTab.MEALS
+        }
 
     BackHandler(enabled = true) {
         when {
@@ -81,7 +79,7 @@ fun AppContent() {
                         icon = {
                             Icon(
                                 imageVector = tab.icon,
-                                contentDescription = tab.label
+                                contentDescription = tab.label,
                             )
                         },
                         label = { Text(tab.label) },
@@ -104,22 +102,23 @@ fun AppContent() {
                                     }
                                 }
                             }
-                        }
+                        },
                     )
                 }
             }
-        }
+        },
     ) { innerPadding ->
         Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) {
             AppNavHost(
                 navController = navController,
                 mealViewModel = mealViewModel,
                 chatViewModel = chatViewModel,
-                settingsViewModel = settingsViewModel
+                settingsViewModel = settingsViewModel,
             )
         }
     }
@@ -127,16 +126,16 @@ fun AppContent() {
 
 @Composable
 private fun AppNavHost(
-    navController: NavHostController,
+    navController: androidx.navigation.NavHostController,
     mealViewModel: MealViewModel,
     chatViewModel: ChatViewModel,
     settingsViewModel: SettingsViewModel,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     NavHost(
         navController = navController,
         startDestination = Screen.Meals.route,
-        modifier = modifier
+        modifier = modifier,
     ) {
         composable(Screen.Meals.route) {
             MealsScreen(
@@ -147,7 +146,7 @@ private fun AppNavHost(
                 },
                 onMealClick = { meal ->
                     navController.navigate(Screen.MealEdit.createRoute(meal.meal.id))
-                }
+                },
             )
         }
 
@@ -158,18 +157,19 @@ private fun AppNavHost(
                         popUpTo(Screen.Meals.route)
                     }
                     mealViewModel.setPendingPhotoUri(uri)
-                }
+                },
             )
         }
 
         composable(
             route = Screen.MealEdit.route,
-            arguments = listOf(
-                navArgument(Screen.MealEdit.MEAL_ID_ARG) {
-                    type = NavType.LongType
-                    defaultValue = -1L
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument(Screen.MealEdit.MEAL_ID_ARG) {
+                        type = NavType.LongType
+                        defaultValue = -1L
+                    },
+                ),
         ) { backStackEntry ->
             val mealId = backStackEntry.arguments?.getLong(Screen.MealEdit.MEAL_ID_ARG) ?: -1L
             val pendingPhotoUri by mealViewModel.pendingPhotoUri.collectAsState()
@@ -195,13 +195,13 @@ private fun AppNavHost(
                                 mealId = currentExistingMeal.meal.id,
                                 description = description,
                                 components = components,
-                                timestamp = currentExistingMeal.meal.timestamp
+                                timestamp = currentExistingMeal.meal.timestamp,
                             )
                         } else {
                             mealViewModel.saveMeal(
                                 photoUri = currentPendingPhoto!!,
                                 description = description,
-                                components = components
+                                components = components,
                             )
                         }
                         mealViewModel.clearPendingPhoto()
@@ -217,7 +217,7 @@ private fun AppNavHost(
                     onRetake = {
                         mealViewModel.clearPendingPhoto()
                         navController.popBackStack()
-                    }
+                    },
                 )
             }
         }
@@ -230,29 +230,32 @@ private fun AppNavHost(
                 },
                 onNewConversation = { newId ->
                     navController.navigate(Screen.Chat.createRoute(newId))
-                }
+                },
             )
         }
 
         composable(
             route = Screen.Chat.route,
-            arguments = listOf(
-                navArgument(Screen.Chat.CONVERSATION_ID_ARG) {
-                    type = NavType.LongType
-                }
-            )
+            arguments =
+                listOf(
+                    navArgument(Screen.Chat.CONVERSATION_ID_ARG) {
+                        type = NavType.LongType
+                    },
+                ),
         ) { backStackEntry ->
-            val conversationId = backStackEntry.arguments?.getLong(Screen.Chat.CONVERSATION_ID_ARG) ?: return@composable
+            val conversationId =
+                backStackEntry.arguments?.getLong(Screen.Chat.CONVERSATION_ID_ARG)
+                    ?: return@composable
             ChatScreen(
                 conversationId = conversationId,
                 viewModel = chatViewModel,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
             )
         }
 
         composable(Screen.Settings.route) {
             SettingsScreen(
-                viewModel = settingsViewModel
+                viewModel = settingsViewModel,
             )
         }
     }

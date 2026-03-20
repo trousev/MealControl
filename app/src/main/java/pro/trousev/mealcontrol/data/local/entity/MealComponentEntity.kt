@@ -12,10 +12,10 @@ import androidx.room.PrimaryKey
             entity = MealEntity::class,
             parentColumns = ["id"],
             childColumns = ["mealId"],
-            onDelete = ForeignKey.CASCADE
-        )
+            onDelete = ForeignKey.CASCADE,
+        ),
     ],
-    indices = [Index("mealId")]
+    indices = [Index("mealId")],
 )
 data class MealComponentEntity(
     @PrimaryKey(autoGenerate = true)
@@ -26,5 +26,5 @@ data class MealComponentEntity(
     val calories: Int,
     val proteinGrams: Int = 0,
     val fatGrams: Int = 0,
-    val carbGrams: Int = 0
+    val carbGrams: Int = 0,
 )

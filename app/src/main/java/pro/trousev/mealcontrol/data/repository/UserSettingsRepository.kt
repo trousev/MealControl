@@ -6,12 +6,12 @@ import pro.trousev.mealcontrol.util.SecureStorage
 
 class UserSettingsRepository(
     private val userSettingsDao: UserSettingsDao,
-    private val secureStorage: SecureStorage
+    private val secureStorage: SecureStorage,
 ) {
     suspend fun getSettings(): UserSettingsEntity? {
         val settings = userSettingsDao.getSettings() ?: return null
         return settings.copy(
-            openAiApiKey = secureStorage.retrieveApiKey()
+            openAiApiKey = secureStorage.retrieveApiKey(),
         )
     }
 

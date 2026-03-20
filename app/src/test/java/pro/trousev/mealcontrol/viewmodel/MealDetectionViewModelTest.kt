@@ -1,9 +1,15 @@
 package pro.trousev.mealcontrol.viewmodel
 
 import android.app.Application
-import org.junit.Assert.*
-import org.junit.Before
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -19,16 +25,17 @@ import pro.trousev.mealcontrol.util.SecureStorage
 
 @RunWith(RobolectricTestRunner::class)
 class MealDetectionViewModelTest {
-
     private lateinit var application: Application
 
     @Before
     fun setup() {
         application = RuntimeEnvironment.getApplication()
-        val mockSecureStorage = object : SecureStorage {
-            override fun storeApiKey(apiKey: String) {}
-            override fun retrieveApiKey(): String = ""
-        }
+        val mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String = ""
+            }
         ServiceLocator.initialize(application, mockSecureStorage)
     }
 
@@ -77,11 +84,12 @@ class MealDetectionViewModelTest {
     @Test
     fun mealDetectionState_copy_worksCorrectly() {
         val state = MealDetectionState()
-        val updatedState = state.copy(
-            photoUri = "test_uri",
-            isLoading = true,
-            error = "test error"
-        )
+        val updatedState =
+            state.copy(
+                photoUri = "test_uri",
+                isLoading = true,
+                error = "test error",
+            )
 
         assertEquals("test_uri", updatedState.photoUri)
         assertTrue(updatedState.isLoading)
@@ -97,22 +105,25 @@ class MealDetectionViewModelTest {
 
     @Test
     fun parseMealDetectionResult_validResponse_parsesCorrectly() {
-        val response = MealDetectionResponse(
-            id = "resp_123",
-            output = listOf(
-                OutputItem(
-                    id = "output_1",
-                    type = "message",
-                    content = listOf(
-                        OutputContentItem(
-                            type = "output_text",
-                            text = """{"name":"Test Meal","components":[{"name":"Chicken","weight_g":150,"energy_kcal":250,"fat_g":10,"protein_g":30,"carbs_g":5},{"name":"Rice","weight_g":100,"energy_kcal":130,"fat_g":1,"protein_g":3,"carbs_g":28}],"followup":""}"""
-                        )
-                    )
-                )
-            ),
-            error = null
-        )
+        val response =
+            MealDetectionResponse(
+                id = "resp_123",
+                output =
+                    listOf(
+                        OutputItem(
+                            id = "output_1",
+                            type = "message",
+                            content =
+                                listOf(
+                                    OutputContentItem(
+                                        type = "output_text",
+                                        text = """{"name":"Test Meal","components":[{"name":"Chicken","weight_g":150,"energy_kcal":250,"fat_g":10,"protein_g":30,"carbs_g":5},{"name":"Rice","weight_g":100,"energy_kcal":130,"fat_g":1,"protein_g":3,"carbs_g":28}],"followup":""}""",
+                                    ),
+                                ),
+                        ),
+                    ),
+                error = null,
+            )
 
         val result = parseMealDetectionResult(response)
 
@@ -129,16 +140,18 @@ class MealDetectionViewModelTest {
 
     @Test
     fun parseMealDetectionResult_responseWithFollowup_parsesCorrectly() {
-        val response = MealDetectionResponse(
-            id = "resp_456",
-            output = listOf(
-                OutputItem(
-                    id = "output_1",
-                    type = "message",
-                    text = """{"name":"Pizza","components":[],"followup":"How large was the pizza slice?"}"""
-                )
+        val response =
+            MealDetectionResponse(
+                id = "resp_456",
+                output =
+                    listOf(
+                        OutputItem(
+                            id = "output_1",
+                            type = "message",
+                            text = """{"name":"Pizza","components":[],"followup":"How large was the pizza slice?"}""",
+                        ),
+                    ),
             )
-        )
 
         val result = parseMealDetectionResult(response)
 
@@ -151,21 +164,24 @@ class MealDetectionViewModelTest {
 
     @Test
     fun parseMealDetectionResult_invalidJson_returnsNull() {
-        val response = MealDetectionResponse(
-            id = "resp_789",
-            output = listOf(
-                OutputItem(
-                    id = "output_1",
-                    type = "message",
-                    content = listOf(
-                        OutputContentItem(
-                            type = "output_text",
-                            text = "not valid json"
-                        )
-                    )
-                )
+        val response =
+            MealDetectionResponse(
+                id = "resp_789",
+                output =
+                    listOf(
+                        OutputItem(
+                            id = "output_1",
+                            type = "message",
+                            content =
+                                listOf(
+                                    OutputContentItem(
+                                        type = "output_text",
+                                        text = "not valid json",
+                                    ),
+                                ),
+                        ),
+                    ),
             )
-        )
 
         val result = parseMealDetectionResult(response)
 
@@ -174,10 +190,11 @@ class MealDetectionViewModelTest {
 
     @Test
     fun parseMealDetectionResult_emptyOutput_returnsNull() {
-        val response = MealDetectionResponse(
-            id = "resp_empty",
-            output = emptyList()
-        )
+        val response =
+            MealDetectionResponse(
+                id = "resp_empty",
+                output = emptyList(),
+            )
 
         val result = parseMealDetectionResult(response)
 
@@ -186,15 +203,17 @@ class MealDetectionViewModelTest {
 
     @Test
     fun parseMealDetectionResult_responseWithoutMessageType_returnsNull() {
-        val response = MealDetectionResponse(
-            id = "resp_999",
-            output = listOf(
-                OutputItem(
-                    id = "output_1",
-                    type = "other_type"
-                )
+        val response =
+            MealDetectionResponse(
+                id = "resp_999",
+                output =
+                    listOf(
+                        OutputItem(
+                            id = "output_1",
+                            type = "other_type",
+                        ),
+                    ),
             )
-        )
 
         val result = parseMealDetectionResult(response)
 
@@ -203,11 +222,12 @@ class MealDetectionViewModelTest {
 
     @Test
     fun mealDetectionMessage_creation_worksCorrectly() {
-        val message = MealDetectionMessage(
-            content = "Test message",
-            isFromUser = true,
-            timestamp = 1234567890L
-        )
+        val message =
+            MealDetectionMessage(
+                content = "Test message",
+                isFromUser = true,
+                timestamp = 1234567890L,
+            )
 
         assertEquals("Test message", message.content)
         assertTrue(message.isFromUser)
@@ -216,14 +236,15 @@ class MealDetectionViewModelTest {
 
     @Test
     fun mealComponentDto_creation_worksCorrectly() {
-        val component = MealComponentDto(
-            name = "Apple",
-            weightG = 200.0,
-            energyKcal = 95.0,
-            fatG = 0.3,
-            proteinG = 0.5,
-            carbsG = 25.0
-        )
+        val component =
+            MealComponentDto(
+                name = "Apple",
+                weightG = 200.0,
+                energyKcal = 95.0,
+                fatG = 0.3,
+                proteinG = 0.5,
+                carbsG = 25.0,
+            )
 
         assertEquals("Apple", component.name)
         assertEquals(200.0, component.weightG, 0.01)
@@ -235,15 +256,17 @@ class MealDetectionViewModelTest {
 
     @Test
     fun mealDetectionResult_creation_worksCorrectly() {
-        val components = listOf(
-            MealComponentDto("Bread", 50.0, 130.0, 1.0, 4.0, 25.0),
-            MealComponentDto("Butter", 10.0, 70.0, 8.0, 0.0, 0.0)
-        )
-        val result = MealDetectionResult(
-            name = "Breakfast",
-            components = components,
-            followup = ""
-        )
+        val components =
+            listOf(
+                MealComponentDto("Bread", 50.0, 130.0, 1.0, 4.0, 25.0),
+                MealComponentDto("Butter", 10.0, 70.0, 8.0, 0.0, 0.0),
+            )
+        val result =
+            MealDetectionResult(
+                name = "Breakfast",
+                components = components,
+                followup = "",
+            )
 
         assertEquals("Breakfast", result.name)
         assertEquals(2, result.components.size)
@@ -252,11 +275,12 @@ class MealDetectionViewModelTest {
 
     @Test
     fun mealDetectionResult_withFollowup_worksCorrectly() {
-        val result = MealDetectionResult(
-            name = "Unknown Meal",
-            components = emptyList(),
-            followup = "What type of bread was it?"
-        )
+        val result =
+            MealDetectionResult(
+                name = "Unknown Meal",
+                components = emptyList(),
+                followup = "What type of bread was it?",
+            )
 
         assertEquals("Unknown Meal", result.name)
         assertTrue(result.components.isEmpty())

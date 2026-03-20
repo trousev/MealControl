@@ -55,7 +55,7 @@ fun ChatScreen(
     conversationId: Long,
     viewModel: ChatViewModel = viewModel(),
     onBackClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val conversation by viewModel.currentConversation.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -81,28 +81,30 @@ fun ChatScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back"
+                            contentDescription = "Back",
                         )
                     }
-                }
+                },
             )
-        }
+        },
     ) { innerPadding ->
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .imePadding()
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .imePadding(),
         ) {
             val messages = conversation?.messages ?: emptyList()
 
             LazyColumn(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
                 state = listState,
                 contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 items(messages, key = { it.id }) { message ->
                     MessageBubble(message = message)
@@ -110,10 +112,11 @@ fun ChatScreen(
             }
 
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                verticalAlignment = Alignment.CenterVertically
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedTextField(
                     value = messageText,
@@ -122,17 +125,17 @@ fun ChatScreen(
                     placeholder = { Text("Type a message...") },
                     shape = RoundedCornerShape(24.dp),
                     singleLine = true,
-                    enabled = !isLoading
+                    enabled = !isLoading,
                 )
 
                 if (isLoading) {
                     Box(
                         modifier = Modifier.padding(8.dp),
-                        contentAlignment = Alignment.Center
+                        contentAlignment = Alignment.Center,
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
+                            strokeWidth = 2.dp,
                         )
                     }
                 } else {
@@ -142,11 +145,11 @@ fun ChatScreen(
                                 viewModel.sendMessage(conversationId, messageText)
                                 messageText = ""
                             }
-                        }
+                        },
                     ) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "Send"
+                            contentDescription = "Send",
                         )
                     }
                 }
@@ -158,41 +161,45 @@ fun ChatScreen(
 @Composable
 private fun MessageBubble(
     message: MessageEntity,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val isFromUser = message.isFromUser
     val dateFormat = remember { SimpleDateFormat("HH:mm", Locale.US) }
 
     Column(
         modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = if (isFromUser) Alignment.End else Alignment.Start
+        horizontalAlignment = if (isFromUser) Alignment.End else Alignment.Start,
     ) {
         Card(
             modifier = Modifier.widthIn(max = 280.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = if (isFromUser) {
-                    MaterialTheme.colorScheme.primary
-                } else {
-                    MaterialTheme.colorScheme.secondaryContainer
-                }
-            ),
-            shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (isFromUser) 16.dp else 4.dp,
-                bottomEnd = if (isFromUser) 4.dp else 16.dp
-            )
+            colors =
+                CardDefaults.cardColors(
+                    containerColor =
+                        if (isFromUser) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.secondaryContainer
+                        },
+                ),
+            shape =
+                RoundedCornerShape(
+                    topStart = 16.dp,
+                    topEnd = 16.dp,
+                    bottomStart = if (isFromUser) 16.dp else 4.dp,
+                    bottomEnd = if (isFromUser) 4.dp else 16.dp,
+                ),
         ) {
             Column(
-                modifier = Modifier.padding(12.dp)
+                modifier = Modifier.padding(12.dp),
             ) {
                 Text(
                     text = message.content,
-                    color = if (isFromUser) {
-                        MaterialTheme.colorScheme.onPrimary
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer
-                    }
+                    color =
+                        if (isFromUser) {
+                            MaterialTheme.colorScheme.onPrimary
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        },
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -200,11 +207,12 @@ private fun MessageBubble(
                 Text(
                     text = dateFormat.format(Date(message.timestamp)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (isFromUser) {
-                        MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
-                    } else {
-                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                    }
+                    color =
+                        if (isFromUser) {
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.7f)
+                        } else {
+                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                        },
                 )
             }
         }

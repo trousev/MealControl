@@ -10,6 +10,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
 import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.dao.ConversationDao
 import pro.trousev.mealcontrol.data.local.dao.MessageDao
@@ -23,12 +29,6 @@ import pro.trousev.mealcontrol.data.remote.MealDetectionResult
 import pro.trousev.mealcontrol.data.remote.OpenAiService
 import pro.trousev.mealcontrol.data.remote.parseMealDetectionResult
 import pro.trousev.mealcontrol.util.ImageCompression
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.JsonElement
-import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.encodeToString
 import java.io.File
 
 private const val TAG = "MealDetection"
@@ -42,13 +42,13 @@ data class MealDetectionState(
     val lastResponseJson: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val conversationId: Long = -1
+    val conversationId: Long = -1,
 )
 
 data class MealDetectionMessage(
     val content: String,
     val isFromUser: Boolean,
-    val timestamp: Long
+    val timestamp: Long,
 )
 
 class MealDetectionViewModel : ViewModel() {
@@ -63,21 +63,23 @@ class MealDetectionViewModel : ViewModel() {
 
     fun initializeWithPhoto(photoUri: String) {
         _state.value = MealDetectionState()
-        
-        viewModelScope.launch {
-            _state.value = _state.value.copy(
-                photoUri = photoUri,
-                isLoading = true,
-                error = null
-            )
 
-            val conversationId = conversationDao.insertConversation(
-                ConversationEntity(
-                    title = "Meal Detection",
-                    createdAt = System.currentTimeMillis(),
-                    isMealDetection = true
+        viewModelScope.launch {
+            _state.value =
+                _state.value.copy(
+                    photoUri = photoUri,
+                    isLoading = true,
+                    error = null,
                 )
-            )
+
+            val conversationId =
+                conversationDao.insertConversation(
+                    ConversationEntity(
+                        title = "Meal Detection",
+                        createdAt = System.currentTimeMillis(),
+                        isMealDetection = true,
+                    ),
+                )
             _state.value = _state.value.copy(conversationId = conversationId)
 
             analyzePhoto()
@@ -90,10 +92,11 @@ class MealDetectionViewModel : ViewModel() {
 
         if (apiKey.isBlank()) {
             Log.e(TAG, "API key is blank")
-            _state.value = _state.value.copy(
-                isLoading = false,
-                error = "OpenAI API key not configured. Please set it in Settings."
-            )
+            _state.value =
+                _state.value.copy(
+                    isLoading = false,
+                    error = "OpenAI API key not configured. Please set it in Settings.",
+                )
             return
         }
 
@@ -102,28 +105,30 @@ class MealDetectionViewModel : ViewModel() {
             Log.d(TAG, "isFirstMessage=$isFirstMessage, lastResponseJson=${_state.value.lastResponseJson != null}")
 
             val openAiService = OpenAiService(apiKey)
-            
-            val result = if (isFirstMessage) {
-                val imageBase64 = withContext(Dispatchers.IO) {
-                    val compressedBytes = ImageCompression.compressImage(_state.value.photoUri)
-                    Log.d(TAG, "Compressed image from ${File(_state.value.photoUri).length()} to ${compressedBytes.size} bytes")
-                    Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
+
+            val result =
+                if (isFirstMessage) {
+                    val imageBase64 =
+                        withContext(Dispatchers.IO) {
+                            val compressedBytes = ImageCompression.compressImage(_state.value.photoUri)
+                            Log.d(TAG, "Compressed image from ${File(_state.value.photoUri).length()} to ${compressedBytes.size} bytes")
+                            Base64.encodeToString(compressedBytes, Base64.NO_WRAP)
+                        }
+
+                    openAiService.detectMealFromImage(
+                        imageBase64 = imageBase64,
+                        promptId = promptId,
+                        lastResponseJson = null,
+                        userFollowup = null,
+                    )
+                } else {
+                    openAiService.detectMealFromImage(
+                        imageBase64 = "",
+                        promptId = promptId,
+                        lastResponseJson = _state.value.lastResponseJson,
+                        userFollowup = userFollowup,
+                    )
                 }
-                
-                openAiService.detectMealFromImage(
-                    imageBase64 = imageBase64,
-                    promptId = promptId,
-                    lastResponseJson = null,
-                    userFollowup = null
-                )
-            } else {
-                openAiService.detectMealFromImage(
-                    imageBase64 = "",
-                    promptId = promptId,
-                    lastResponseJson = _state.value.lastResponseJson,
-                    userFollowup = userFollowup
-                )
-            }
 
             when {
                 result.isSuccess -> {
@@ -134,60 +139,65 @@ class MealDetectionViewModel : ViewModel() {
                 result.isFailure -> {
                     val errorMsg = result.exceptionOrNull()?.message ?: "Unknown error"
                     Log.e(TAG, "API call failed: $errorMsg")
-                    _state.value = _state.value.copy(
-                        isLoading = false,
-                        error = "API Error: $errorMsg"
-                    )
+                    _state.value =
+                        _state.value.copy(
+                            isLoading = false,
+                            error = "API Error: $errorMsg",
+                        )
                 }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Exception in analyzePhoto: ${e.message}", e)
-            _state.value = _state.value.copy(
-                isLoading = false,
-                error = e.message ?: "Unknown error"
-            )
+            _state.value =
+                _state.value.copy(
+                    isLoading = false,
+                    error = e.message ?: "Unknown error",
+                )
         }
     }
 
     private fun processResponse(response: MealDetectionResponse?) {
         Log.d(TAG, "processResponse called with response=$response")
-        
+
         val result = parseMealDetectionResult(response)
-        
+
         if (result == null) {
             Log.e(TAG, "Failed to parse meal detection result")
-            _state.value = _state.value.copy(
-                isLoading = false,
-                error = "Failed to parse meal detection response"
-            )
+            _state.value =
+                _state.value.copy(
+                    isLoading = false,
+                    error = "Failed to parse meal detection response",
+                )
             return
         }
-        
+
         val mealName = result.name
         val allComponents = result.components
         val followup = result.followup
-        
-        Log.d(TAG, "Parsed: name=$mealName, components=${allComponents.size}, followup='$followup'")
-        
-        val messageContent = if (followup.isNotEmpty()) {
-            followup
-        } else if (allComponents.isNotEmpty()) {
-            buildString {
-                append("Components (${allComponents.size}):\n")
-                allComponents.forEachIndexed { index, comp ->
-                    append("${index + 1}. ${comp.name} - ${comp.weightG.toInt()}g (${comp.energyKcal.toInt()} kcal)\n")
-                }
-            }
-        } else {
-            "Could not detect meal components. Please try again or provide more details."
-        }
 
-        val botMessage = MessageEntity(
-            conversationId = _state.value.conversationId,
-            content = messageContent,
-            isFromUser = false,
-            timestamp = System.currentTimeMillis()
-        )
+        Log.d(TAG, "Parsed: name=$mealName, components=${allComponents.size}, followup='$followup'")
+
+        val messageContent =
+            if (followup.isNotEmpty()) {
+                followup
+            } else if (allComponents.isNotEmpty()) {
+                buildString {
+                    append("Components (${allComponents.size}):\n")
+                    allComponents.forEachIndexed { index, comp ->
+                        append("${index + 1}. ${comp.name} - ${comp.weightG.toInt()}g (${comp.energyKcal.toInt()} kcal)\n")
+                    }
+                }
+            } else {
+                "Could not detect meal components. Please try again or provide more details."
+            }
+
+        val botMessage =
+            MessageEntity(
+                conversationId = _state.value.conversationId,
+                content = messageContent,
+                isFromUser = false,
+                timestamp = System.currentTimeMillis(),
+            )
 
         viewModelScope.launch {
             messageDao.insertMessage(botMessage)
@@ -195,47 +205,56 @@ class MealDetectionViewModel : ViewModel() {
 
         if (allComponents.isNotEmpty()) {
             val resultJson = Json.encodeToString(MealDetectionResult.serializer(), result)
-            _state.value = _state.value.copy(
-                messages = _state.value.messages + MealDetectionMessage(
-                    content = messageContent,
-                    isFromUser = false,
-                    timestamp = System.currentTimeMillis()
-                ),
-                currentComponents = allComponents,
-                currentQuestion = if (followup.isNotEmpty()) followup else null,
-                mealName = mealName,
-                lastResponseJson = resultJson,
-                isLoading = false,
-                error = null
-            )
+            _state.value =
+                _state.value.copy(
+                    messages =
+                        _state.value.messages +
+                            MealDetectionMessage(
+                                content = messageContent,
+                                isFromUser = false,
+                                timestamp = System.currentTimeMillis(),
+                            ),
+                    currentComponents = allComponents,
+                    currentQuestion = if (followup.isNotEmpty()) followup else null,
+                    mealName = mealName,
+                    lastResponseJson = resultJson,
+                    isLoading = false,
+                    error = null,
+                )
         } else if (followup.isNotEmpty()) {
             val resultJson = Json.encodeToString(MealDetectionResult.serializer(), result)
-            _state.value = _state.value.copy(
-                messages = _state.value.messages + MealDetectionMessage(
-                    content = messageContent,
-                    isFromUser = false,
-                    timestamp = System.currentTimeMillis()
-                ),
-                currentQuestion = followup,
-                currentComponents = null,
-                mealName = null,
-                lastResponseJson = resultJson,
-                isLoading = false,
-                error = null
-            )
+            _state.value =
+                _state.value.copy(
+                    messages =
+                        _state.value.messages +
+                            MealDetectionMessage(
+                                content = messageContent,
+                                isFromUser = false,
+                                timestamp = System.currentTimeMillis(),
+                            ),
+                    currentQuestion = followup,
+                    currentComponents = null,
+                    mealName = null,
+                    lastResponseJson = resultJson,
+                    isLoading = false,
+                    error = null,
+                )
         } else {
-            _state.value = _state.value.copy(
-                messages = _state.value.messages + MealDetectionMessage(
-                    content = messageContent,
-                    isFromUser = false,
-                    timestamp = System.currentTimeMillis()
-                ),
-                currentQuestion = null,
-                currentComponents = null,
-                mealName = null,
-                isLoading = false,
-                error = "Could not detect meal"
-            )
+            _state.value =
+                _state.value.copy(
+                    messages =
+                        _state.value.messages +
+                            MealDetectionMessage(
+                                content = messageContent,
+                                isFromUser = false,
+                                timestamp = System.currentTimeMillis(),
+                            ),
+                    currentQuestion = null,
+                    currentComponents = null,
+                    mealName = null,
+                    isLoading = false,
+                    error = "Could not detect meal",
+                )
         }
     }
 
@@ -257,37 +276,41 @@ class MealDetectionViewModel : ViewModel() {
 
     fun sendFollowUp(text: String) {
         Log.d(TAG, "sendFollowUp: '$text'")
-        
+
         viewModelScope.launch {
             _state.value = _state.value.copy(isLoading = true)
 
-            val userMessage = MessageEntity(
-                conversationId = _state.value.conversationId,
-                content = text,
-                isFromUser = true,
-                timestamp = System.currentTimeMillis()
-            )
-            messageDao.insertMessage(userMessage)
-
-            _state.value = _state.value.copy(
-                messages = _state.value.messages + MealDetectionMessage(
+            val userMessage =
+                MessageEntity(
+                    conversationId = _state.value.conversationId,
                     content = text,
                     isFromUser = true,
-                    timestamp = System.currentTimeMillis()
-                ),
-                currentQuestion = null,
-                currentComponents = null
-            )
+                    timestamp = System.currentTimeMillis(),
+                )
+            messageDao.insertMessage(userMessage)
+
+            _state.value =
+                _state.value.copy(
+                    messages =
+                        _state.value.messages +
+                            MealDetectionMessage(
+                                content = text,
+                                isFromUser = true,
+                                timestamp = System.currentTimeMillis(),
+                            ),
+                    currentQuestion = null,
+                    currentComponents = null,
+                )
 
             analyzePhoto(userFollowup = text)
         }
     }
 
-    private fun parseComponentsFromJson(responseText: String): List<MealComponentDto>? {
-        return try {
+    private fun parseComponentsFromJson(responseText: String): List<MealComponentDto>? =
+        try {
             val json = Json { ignoreUnknownKeys = true }
             val jsonElement = json.parseToJsonElement(responseText)
-            
+
             // Check if it's a JSON object with "meal_components" key
             if (jsonElement is JsonElement && jsonElement.jsonObject.contains("meal_components")) {
                 val componentsArray = jsonElement.jsonObject["meal_components"]?.jsonArray
@@ -309,9 +332,11 @@ class MealDetectionViewModel : ViewModel() {
                             energyKcal = getDouble("energy_kcal"),
                             fatG = getDouble("fat_g"),
                             proteinG = getDouble("protein_g"),
-                            carbsG = getDouble("carbs_g")
+                            carbsG = getDouble("carbs_g"),
                         )
-                    } else null
+                    } else {
+                        null
+                    }
                 }
             } else {
                 null
@@ -320,7 +345,6 @@ class MealDetectionViewModel : ViewModel() {
             Log.e(TAG, "Failed to parse components from JSON: ${e.message}")
             null
         }
-    }
 
     fun retake() {
         viewModelScope.launch {
@@ -334,33 +358,36 @@ class MealDetectionViewModel : ViewModel() {
     fun initializeForEdit(
         photoUri: String,
         mealName: String,
-        components: List<MealComponentDto>
+        components: List<MealComponentDto>,
     ) {
         viewModelScope.launch {
-            val conversationId = conversationDao.insertConversation(
-                ConversationEntity(
-                    title = "Meal Edit",
-                    createdAt = System.currentTimeMillis(),
-                    isMealDetection = true
+            val conversationId =
+                conversationDao.insertConversation(
+                    ConversationEntity(
+                        title = "Meal Edit",
+                        createdAt = System.currentTimeMillis(),
+                        isMealDetection = true,
+                    ),
                 )
-            )
 
-            val result = MealDetectionResult(
-                name = mealName,
-                components = components,
-                followup = ""
-            )
+            val result =
+                MealDetectionResult(
+                    name = mealName,
+                    components = components,
+                    followup = "",
+                )
             val resultJson = Json.encodeToString(MealDetectionResult.serializer(), result)
 
-            _state.value = MealDetectionState(
-                photoUri = photoUri,
-                mealName = mealName,
-                currentComponents = components,
-                lastResponseJson = resultJson,
-                isLoading = false,
-                error = null,
-                conversationId = conversationId
-            )
+            _state.value =
+                MealDetectionState(
+                    photoUri = photoUri,
+                    mealName = mealName,
+                    currentComponents = components,
+                    lastResponseJson = resultJson,
+                    isLoading = false,
+                    error = null,
+                    conversationId = conversationId,
+                )
         }
     }
 }

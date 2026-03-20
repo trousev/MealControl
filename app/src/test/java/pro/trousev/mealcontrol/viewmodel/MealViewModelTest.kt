@@ -1,8 +1,15 @@
 package pro.trousev.mealcontrol.viewmodel
 
-import org.junit.Assert.*
-import org.junit.Before
+import androidx.room.Room
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
@@ -11,25 +18,26 @@ import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
 import pro.trousev.mealcontrol.data.local.dao.MealDao
 import pro.trousev.mealcontrol.util.SecureStorage
-import androidx.room.Room
 
 @RunWith(RobolectricTestRunner::class)
 class MealViewModelTest {
-
     private lateinit var database: MealControlDatabase
 
     @Before
     fun setup() {
-        database = Room.inMemoryDatabaseBuilder(
-            RuntimeEnvironment.getApplication().applicationContext,
-            MealControlDatabase::class.java
-        )
-            .allowMainThreadQueries()
-            .build()
-        val mockSecureStorage = object : SecureStorage {
-            override fun storeApiKey(apiKey: String) {}
-            override fun retrieveApiKey(): String = ""
-        }
+        database =
+            Room
+                .inMemoryDatabaseBuilder(
+                    RuntimeEnvironment.getApplication().applicationContext,
+                    MealControlDatabase::class.java,
+                ).allowMainThreadQueries()
+                .build()
+        val mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String = ""
+            }
         ServiceLocator.initialize(RuntimeEnvironment.getApplication(), mockSecureStorage)
     }
 

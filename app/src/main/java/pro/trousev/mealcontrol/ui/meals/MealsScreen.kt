@@ -61,7 +61,7 @@ fun MealsScreen(
     settingsViewModel: SettingsViewModel = viewModel(),
     onAddMealClick: () -> Unit,
     onMealClick: (MealWithComponents) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val mealsByDate by mealViewModel.mealsByDate.collectAsState()
     val availableDates by mealViewModel.availableDates.collectAsState()
@@ -74,10 +74,11 @@ fun MealsScreen(
     val targetFat = settingsFormState.calculation?.fatGrams ?: 0
     val targetCarbs = settingsFormState.calculation?.carbGrams ?: 0
 
-    val pagerState = rememberPagerState(
-        initialPage = currentPageIndex,
-        pageCount = { availableDates.size.coerceAtLeast(1) }
-    )
+    val pagerState =
+        rememberPagerState(
+            initialPage = currentPageIndex,
+            pageCount = { availableDates.size.coerceAtLeast(1) },
+        )
     val scope = rememberCoroutineScope()
 
     LaunchedEffect(pagerState.currentPage) {
@@ -85,14 +86,15 @@ fun MealsScreen(
     }
 
     Scaffold(
-        modifier = modifier
+        modifier = modifier,
     ) { innerPadding ->
         HorizontalPager(
             state = pagerState,
             reverseLayout = true,
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding),
         ) { page ->
             val dateTimestamp = availableDates.getOrElse(page) { System.currentTimeMillis() }
             val isToday = mealViewModel.isToday(dateTimestamp)
@@ -117,7 +119,7 @@ fun MealsScreen(
                         }
                     }
                 },
-                computeMealTotals = { mealViewModel.computeMealTotals(it) }
+                computeMealTotals = { mealViewModel.computeMealTotals(it) },
             )
         }
     }
@@ -136,7 +138,7 @@ private fun DayPage(
     onAddMealClick: () -> Unit,
     onMealClick: (MealWithComponents) -> Unit,
     onGoToTodayClick: () -> Unit,
-    computeMealTotals: (List<MealComponentEntity>) -> DayNutrientTotals
+    computeMealTotals: (List<MealComponentEntity>) -> DayNutrientTotals,
 ) {
     val remainingCalories = targetCalories - dayTotals.calories
     val remainingProtein = targetProtein - dayTotals.protein
@@ -145,10 +147,11 @@ private fun DayPage(
 
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier =
+                Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Spacer(modifier = Modifier.height(4.dp))
@@ -166,21 +169,22 @@ private fun DayPage(
                     remainingFat = remainingFat,
                     consumedCarbs = dayTotals.carbs,
                     targetCarbs = targetCarbs,
-                    remainingCarbs = remainingCarbs
+                    remainingCarbs = remainingCarbs,
                 )
             }
 
             if (meals.isEmpty()) {
                 item {
                     Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(32.dp),
-                        contentAlignment = Alignment.Center
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                        contentAlignment = Alignment.Center,
                     ) {
                         Text(
                             text = if (isToday) "No meals yet. Tap + to add one!" else "No meals on this day.",
-                            style = MaterialTheme.typography.bodyLarge
+                            style = MaterialTheme.typography.bodyLarge,
                         )
                     }
                 }
@@ -189,7 +193,7 @@ private fun DayPage(
                     MealCard(
                         mealWithComponents = mealWithComponents,
                         totals = computeMealTotals(mealWithComponents.components),
-                        onClick = { onMealClick(mealWithComponents) }
+                        onClick = { onMealClick(mealWithComponents) },
                     )
                 }
             }
@@ -204,27 +208,29 @@ private fun DayPage(
                 onClick = onAddMealClick,
                 shape = CircleShape,
                 containerColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "Add meal"
+                    contentDescription = "Add meal",
                 )
             }
         } else {
             IconButton(
                 onClick = onGoToTodayClick,
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(16.dp)
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp),
             ) {
                 Icon(
                     imageVector = Icons.Default.DateRange,
                     contentDescription = "Go to today",
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(32.dp)
+                    modifier = Modifier.size(32.dp),
                 )
             }
         }
@@ -247,7 +253,7 @@ private fun DaySummaryCard(
     consumedCarbs: Int,
     targetCarbs: Int,
     remainingCarbs: Int,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val dateFormat = remember { SimpleDateFormat("MMMM d, yyyy", Locale.US) }
     val title = if (isToday) "Today's Budget" else dateFormat.format(Date(dateTimestamp))
@@ -255,19 +261,21 @@ private fun DaySummaryCard(
 
     Card(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer
-        )
+        colors =
+            CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+            ),
     ) {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
         ) {
             Text(
                 text = title,
                 style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onPrimaryContainer
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
             )
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -275,45 +283,45 @@ private fun DaySummaryCard(
                 Text(
                     text = if (remainingCalories >= 0) "$remainingCalories / $targetCalories kcal left" else "${-remainingCalories} / $targetCalories kcal over",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = if (remainingCalories < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
+                    color = if (remainingCalories < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = if (remainingProtein >= 0) "$remainingProtein / ${targetProtein}g protein left" else "${-remainingProtein} / ${targetProtein}g protein over",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (remainingProtein < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
+                    color = if (remainingProtein < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = if (remainingFat >= 0) "$remainingFat / ${targetFat}g fat left" else "${-remainingFat} / ${targetFat}g fat over",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (remainingFat < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
+                    color = if (remainingFat < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = if (remainingCarbs >= 0) "$remainingCarbs / ${targetCarbs}g carbs left" else "${-remainingCarbs} / ${targetCarbs}g carbs over",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = if (remainingCarbs < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer
+                    color = if (remainingCarbs < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             } else {
                 Text(
                     text = "$consumedCalories / $targetCalories kcal",
                     style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     text = "P: ${consumedProtein}g / ${targetProtein}g",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = "F: ${consumedFat}g / ${targetFat}g",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
                 Text(
                     text = "C: ${consumedCarbs}g / ${targetCarbs}g",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }
         }
@@ -325,39 +333,42 @@ private fun MealCard(
     mealWithComponents: MealWithComponents,
     totals: DayNutrientTotals,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val meal = mealWithComponents.meal
     val dateFormat = remember { SimpleDateFormat("MMM dd, yyyy HH:mm", Locale.US) }
 
     Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .clickable { onClick() },
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Image(
                 painter = rememberAsyncImagePainter(File(meal.photoUri)),
                 contentDescription = "Meal photo",
-                modifier = Modifier
-                    .size(80.dp)
-                    .clip(MaterialTheme.shapes.small),
-                contentScale = ContentScale.Crop
+                modifier =
+                    Modifier
+                        .size(80.dp)
+                        .clip(MaterialTheme.shapes.small),
+                contentScale = ContentScale.Crop,
             )
 
             Spacer(modifier = Modifier.width(12.dp))
 
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier.weight(1f),
             ) {
                 Text(
                     text = meal.description,
-                    style = MaterialTheme.typography.titleMedium
+                    style = MaterialTheme.typography.titleMedium,
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -365,7 +376,7 @@ private fun MealCard(
                 Text(
                     text = dateFormat.format(Date(meal.timestamp)),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
 
                 Spacer(modifier = Modifier.height(4.dp))
@@ -373,7 +384,7 @@ private fun MealCard(
                 Text(
                     text = "${totals.calories} kcal (P:${totals.protein}g F:${totals.fat}g C:${totals.carbs}g)",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
         }

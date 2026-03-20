@@ -49,7 +49,7 @@ fun ConversationsListScreen(
     viewModel: ChatViewModel = viewModel(),
     onConversationClick: (Long) -> Unit,
     onNewConversation: (Long) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val conversations by viewModel.conversations.collectAsState()
 
@@ -63,42 +63,44 @@ fun ConversationsListScreen(
                     }
                 },
                 shape = CircleShape,
-                containerColor = MaterialTheme.colorScheme.primary
+                containerColor = MaterialTheme.colorScheme.primary,
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
-                    contentDescription = "New conversation"
+                    contentDescription = "New conversation",
                 )
             }
-        }
+        },
     ) { innerPadding ->
         if (conversations.isEmpty()) {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                contentAlignment = Alignment.Center
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = "No conversations yet.\nTap + to start a new chat!",
-                    style = MaterialTheme.typography.bodyLarge
+                    style = MaterialTheme.typography.bodyLarge,
                 )
             }
         } else {
             LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(horizontal = 16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 item { Spacer(modifier = Modifier.height(8.dp)) }
-                
+
                 items(conversations, key = { it.conversation.id }) { conversationWithLastMessage ->
                     ConversationItem(
                         conversationWithLastMessage = conversationWithLastMessage,
                         onClick = { onConversationClick(conversationWithLastMessage.conversation.id) },
-                        onDelete = { viewModel.deleteConversation(conversationWithLastMessage.conversation.id) }
+                        onDelete = { viewModel.deleteConversation(conversationWithLastMessage.conversation.id) },
                     )
                 }
 
@@ -114,42 +116,43 @@ private fun ConversationItem(
     conversationWithLastMessage: ConversationWithLastMessage,
     onClick: () -> Unit,
     onDelete: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
 ) {
     val conversation = conversationWithLastMessage.conversation
     val lastMessage = conversationWithLastMessage.lastMessage
     val dateFormat = remember { SimpleDateFormat("MMM dd", Locale.US) }
 
-    val dismissState = rememberSwipeToDismissBoxState(
-        positionalThreshold = { totalDistance -> totalDistance * 0.75f },
-        confirmValueChange = { dismissValue ->
-            if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
-                onDelete()
-                true
-            } else {
-                false
-            }
-        }
-    )
+    val dismissState =
+        rememberSwipeToDismissBoxState(
+            positionalThreshold = { totalDistance -> totalDistance * 0.75f },
+            confirmValueChange = { dismissValue ->
+                if (dismissValue == SwipeToDismissBoxValue.EndToStart) {
+                    onDelete()
+                    true
+                } else {
+                    false
+                }
+            },
+        )
 
     SwipeToDismissBox(
         state = dismissState,
         modifier = modifier,
         backgroundContent = {
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        color = MaterialTheme.colorScheme.error,
-                        shape = RoundedCornerShape(12.dp)
-                    )
-                    .padding(horizontal = 20.dp),
-                contentAlignment = Alignment.CenterEnd
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            color = MaterialTheme.colorScheme.error,
+                            shape = RoundedCornerShape(12.dp),
+                        ).padding(horizontal = 20.dp),
+                contentAlignment = Alignment.CenterEnd,
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
-                    tint = Color.White
+                    tint = Color.White,
                 )
             }
         },
@@ -157,25 +160,28 @@ private fun ConversationItem(
         enableDismissFromEndToStart = true,
         content = {
             Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(onClick = onClick),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface
-                )
+                modifier =
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable(onClick = onClick),
+                colors =
+                    CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                    ),
             ) {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier =
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.weight(1f),
                     ) {
                         Text(
                             text = conversation.title,
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
                         )
 
                         Spacer(modifier = Modifier.height(4.dp))
@@ -185,24 +191,24 @@ private fun ConversationItem(
                                 text = lastMessage.content,
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1
+                                maxLines = 1,
                             )
 
                             Text(
                                 text = dateFormat.format(Date(lastMessage.timestamp)),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         } else {
                             Text(
                                 text = "No messages yet",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
                 }
             }
-        }
+        },
     )
 }

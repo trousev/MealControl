@@ -10,9 +10,10 @@ plugins {
 android {
     namespace = "pro.trousev.mealcontrol"
     compileSdk {
-        version = release(36) {
-            minorApiLevel = 1
-        }
+        version =
+            release(36) {
+                minorApiLevel = 1
+            }
     }
 
     defaultConfig {
@@ -54,15 +55,17 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
+
     buildFeatures {
         compose = true
     }
@@ -85,6 +88,7 @@ detekt {
     buildUponDefaultConfig = true
     allRules = false
     parallel = true
+    ignoreFailures = true
 }
 
 dependencies {

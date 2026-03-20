@@ -2,21 +2,21 @@ package pro.trousev.mealcontrol.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import pro.trousev.mealcontrol.ServiceLocator
-import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
-import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
-import pro.trousev.mealcontrol.data.repository.MealRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pro.trousev.mealcontrol.ServiceLocator
+import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
+import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
+import pro.trousev.mealcontrol.data.repository.MealRepository
 import java.util.Calendar
 
 data class DayNutrientTotals(
     val calories: Int,
     val protein: Int,
     val fat: Int,
-    val carbs: Int
+    val carbs: Int,
 )
 
 class MealViewModel : ViewModel() {
@@ -55,13 +55,15 @@ class MealViewModel : ViewModel() {
             _meals.value = allMeals
 
             val today = Calendar.getInstance()
-            val filteredMeals = allMeals.filter { meal ->
-                val mealDate = Calendar.getInstance().apply {
-                    timeInMillis = meal.meal.timestamp
-                }
-                mealDate.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
+            val filteredMeals =
+                allMeals.filter { meal ->
+                    val mealDate =
+                        Calendar.getInstance().apply {
+                            timeInMillis = meal.meal.timestamp
+                        }
+                    mealDate.get(Calendar.YEAR) == today.get(Calendar.YEAR) &&
                         mealDate.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR)
-            }
+                }
             _todayMeals.value = filteredMeals
 
             val groupedMeals = groupMealsByDate(allMeals)
@@ -69,46 +71,46 @@ class MealViewModel : ViewModel() {
 
             val todayMidnight = normalizeToMidnight(System.currentTimeMillis())
             val dates = groupedMeals.keys.sortedDescending()
-            val datesWithToday = if (dates.isEmpty() || dates.first() != todayMidnight) {
-                listOf(todayMidnight) + dates
-            } else {
-                dates
-            }
+            val datesWithToday =
+                if (dates.isEmpty() || dates.first() != todayMidnight) {
+                    listOf(todayMidnight) + dates
+                } else {
+                    dates
+                }
             _availableDates.value = datesWithToday
 
-            val totals = groupedMeals.mapValues { (_, meals) ->
-                val calories = meals.flatMap { it.components }.sumOf { it.calories }
-                val protein = meals.flatMap { it.components }.sumOf { it.proteinGrams }
-                val fat = meals.flatMap { it.components }.sumOf { it.fatGrams }
-                val carbs = meals.flatMap { it.components }.sumOf { it.carbGrams }
-                DayNutrientTotals(calories, protein, fat, carbs)
-            }
+            val totals =
+                groupedMeals.mapValues { (_, meals) ->
+                    val calories = meals.flatMap { it.components }.sumOf { it.calories }
+                    val protein = meals.flatMap { it.components }.sumOf { it.proteinGrams }
+                    val fat = meals.flatMap { it.components }.sumOf { it.fatGrams }
+                    val carbs = meals.flatMap { it.components }.sumOf { it.carbGrams }
+                    DayNutrientTotals(calories, protein, fat, carbs)
+                }
             _dayTotals.value = totals
 
             _currentPageIndex.value = 0
         }
     }
 
-    private fun groupMealsByDate(meals: List<MealWithComponents>): Map<Long, List<MealWithComponents>> {
-        return meals.groupBy { meal ->
+    private fun groupMealsByDate(meals: List<MealWithComponents>): Map<Long, List<MealWithComponents>> =
+        meals.groupBy { meal ->
             normalizeToMidnight(meal.meal.timestamp)
         }
-    }
 
     private fun normalizeToMidnight(timestamp: Long): Long {
-        val calendar = Calendar.getInstance().apply {
-            timeInMillis = timestamp
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
+        val calendar =
+            Calendar.getInstance().apply {
+                timeInMillis = timestamp
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
         return calendar.timeInMillis
     }
 
-    fun isToday(dateTimestamp: Long): Boolean {
-        return normalizeToMidnight(dateTimestamp) == normalizeToMidnight(System.currentTimeMillis())
-    }
+    fun isToday(dateTimestamp: Long): Boolean = normalizeToMidnight(dateTimestamp) == normalizeToMidnight(System.currentTimeMillis())
 
     fun navigateToToday() {
         val todayMidnight = normalizeToMidnight(System.currentTimeMillis())
@@ -127,7 +129,7 @@ class MealViewModel : ViewModel() {
     fun saveMeal(
         photoUri: String,
         description: String,
-        components: List<Triple<String, Double, List<Number>>>
+        components: List<Triple<String, Double, List<Number>>>,
     ) {
         viewModelScope.launch {
             repository.saveMeal(photoUri, description, components)
@@ -146,7 +148,7 @@ class MealViewModel : ViewModel() {
         mealId: Long,
         description: String,
         components: List<Triple<String, Double, List<Number>>>,
-        timestamp: Long
+        timestamp: Long,
     ) {
         viewModelScope.launch {
             repository.updateMeal(mealId, description, components, timestamp)
@@ -162,16 +164,13 @@ class MealViewModel : ViewModel() {
         _pendingPhotoUri.value = null
     }
 
-    suspend fun getMealById(mealId: Long): MealWithComponents? {
-        return repository.getMealById(mealId)
-    }
+    suspend fun getMealById(mealId: Long): MealWithComponents? = repository.getMealById(mealId)
 
-    fun computeMealTotals(components: List<MealComponentEntity>): DayNutrientTotals {
-        return DayNutrientTotals(
+    fun computeMealTotals(components: List<MealComponentEntity>): DayNutrientTotals =
+        DayNutrientTotals(
             calories = components.sumOf { it.calories },
             protein = components.sumOf { it.proteinGrams },
             fat = components.sumOf { it.fatGrams },
-            carbs = components.sumOf { it.carbGrams }
+            carbs = components.sumOf { it.carbGrams },
         )
-    }
 }

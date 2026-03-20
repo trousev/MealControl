@@ -2,14 +2,14 @@ package pro.trousev.mealcontrol.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import pro.trousev.mealcontrol.ServiceLocator
-import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
-import pro.trousev.mealcontrol.data.repository.ChatRepository
-import pro.trousev.mealcontrol.data.repository.ConversationWithLastMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pro.trousev.mealcontrol.ServiceLocator
+import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
+import pro.trousev.mealcontrol.data.repository.ChatRepository
+import pro.trousev.mealcontrol.data.repository.ConversationWithLastMessage
 
 class ChatViewModel : ViewModel() {
     private val repository: ChatRepository = ServiceLocator.provideChatRepository()
@@ -47,7 +47,10 @@ class ChatViewModel : ViewModel() {
         }
     }
 
-    fun sendMessage(conversationId: Long, content: String) {
+    fun sendMessage(
+        conversationId: Long,
+        content: String,
+    ) {
         viewModelScope.launch {
             _isLoading.value = true
             repository.sendMessage(conversationId, content)

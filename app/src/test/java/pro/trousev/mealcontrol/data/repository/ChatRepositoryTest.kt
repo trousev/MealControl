@@ -1,8 +1,14 @@
 package pro.trousev.mealcontrol.data.repository
 
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.*
 import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNotSame
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,7 +20,6 @@ import pro.trousev.mealcontrol.util.SecureStorage
 
 @RunWith(RobolectricTestRunner::class)
 class ChatRepositoryTest {
-
     private lateinit var database: MealControlDatabase
     private lateinit var repository: ChatRepository
     private lateinit var mockSecureStorage: SecureStorage
@@ -22,19 +27,23 @@ class ChatRepositoryTest {
     @Before
     fun setup() {
         database = TestDatabaseFactory.createInMemory(RuntimeEnvironment.getApplication())
-        mockSecureStorage = object : SecureStorage {
-            override fun storeApiKey(apiKey: String) {}
-            override fun retrieveApiKey(): String = ""
-        }
-        val userSettingsRepository = UserSettingsRepository(
-            database.userSettingsDao(),
-            mockSecureStorage
-        )
-        repository = ChatRepository(
-            database.conversationDao(),
-            database.messageDao(),
-            userSettingsRepository
-        )
+        mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String = ""
+            }
+        val userSettingsRepository =
+            UserSettingsRepository(
+                database.userSettingsDao(),
+                mockSecureStorage,
+            )
+        repository =
+            ChatRepository(
+                database.conversationDao(),
+                database.messageDao(),
+                userSettingsRepository,
+            )
     }
 
     @After
@@ -43,132 +52,143 @@ class ChatRepositoryTest {
     }
 
     @Test
-    fun createConversation_createsNewConversation() = runBlocking {
-        val conversationId = repository.createConversation()
+    fun createConversation_createsNewConversation() =
+        runBlocking {
+            val conversationId = repository.createConversation()
 
-        assertTrue(conversationId > 0)
+            assertTrue(conversationId > 0)
 
-        val conversations = repository.getAllConversations()
-        assertEquals(1, conversations.size)
-        assertTrue(conversations[0].conversation.title.startsWith("Chat -"))
-    }
-
-    @Test
-    fun createConversation_multipleConversations_haveDifferentTitles() = runBlocking {
-        val id1 = repository.createConversation()
-        Thread.sleep(10)
-        val id2 = repository.createConversation()
-        Thread.sleep(10)
-        val id3 = repository.createConversation()
-
-        val conversations = repository.getAllConversations()
-
-        assertEquals(3, conversations.size)
-    }
+            val conversations = repository.getAllConversations()
+            assertEquals(1, conversations.size)
+            assertTrue(conversations[0].conversation.title.startsWith("Chat -"))
+        }
 
     @Test
-    fun getAllConversations_returnsEmptyListWhenNoConversations() = runBlocking {
-        val conversations = repository.getAllConversations()
+    fun createConversation_multipleConversations_haveDifferentTitles() =
+        runBlocking {
+            val id1 = repository.createConversation()
+            Thread.sleep(10)
+            val id2 = repository.createConversation()
+            Thread.sleep(10)
+            val id3 = repository.createConversation()
 
-        assertTrue(conversations.isEmpty())
-    }
+            val conversations = repository.getAllConversations()
 
-    @Test
-    fun getAllConversations_returnsConversations() = runBlocking {
-        val conversationId = repository.createConversation()
-        repository.sendMessage(conversationId, "Hello")
-
-        val conversations = repository.getAllConversations()
-
-        assertTrue(conversations.isNotEmpty())
-    }
+            assertEquals(3, conversations.size)
+        }
 
     @Test
-    fun getAllConversations_returnsNullLastMessageForEmptyConversation() = runBlocking {
-        repository.createConversation()
+    fun getAllConversations_returnsEmptyListWhenNoConversations() =
+        runBlocking {
+            val conversations = repository.getAllConversations()
 
-        val conversations = repository.getAllConversations()
-
-        assertEquals(1, conversations.size)
-        assertNull(conversations[0].lastMessage)
-    }
+            assertTrue(conversations.isEmpty())
+        }
 
     @Test
-    fun getConversation_returnsCorrectConversation() = runBlocking {
-        val convCountBefore = repository.getAllConversations().size
-        val conversationId = repository.createConversation()
-        repository.sendMessage(conversationId, "First message")
-        repository.sendMessage(conversationId, "Second message")
+    fun getAllConversations_returnsConversations() =
+        runBlocking {
+            val conversationId = repository.createConversation()
+            repository.sendMessage(conversationId, "Hello")
 
-        val conversation = repository.getConversation(conversationId)
+            val conversations = repository.getAllConversations()
 
-        assertNotNull(conversation)
-        
-        val userMessages = conversation!!.messages.filter { it.isFromUser }
-        assertEquals(2, userMessages.size)
-    }
+            assertTrue(conversations.isNotEmpty())
+        }
 
     @Test
-    fun getConversation_returnsNullForNonExistent() = runBlocking {
-        val conversation = repository.getConversation(999L)
+    fun getAllConversations_returnsNullLastMessageForEmptyConversation() =
+        runBlocking {
+            repository.createConversation()
 
-        assertNull(conversation)
-    }
+            val conversations = repository.getAllConversations()
 
-    @Test
-    fun sendMessage_createsMessage() = runBlocking {
-        val conversationId = repository.createConversation()
-
-        val message = repository.sendMessage(conversationId, "Hello, bot!")
-
-        assertEquals("Hello, bot!", message.content)
-        assertTrue(message.isFromUser)
-        assertEquals(conversationId, message.conversationId)
-    }
+            assertEquals(1, conversations.size)
+            assertNull(conversations[0].lastMessage)
+        }
 
     @Test
-    fun sendMessage_multipleMessages_haveCorrectOrder() = runBlocking {
-        val conversationId = repository.createConversation()
+    fun getConversation_returnsCorrectConversation() =
+        runBlocking {
+            val convCountBefore = repository.getAllConversations().size
+            val conversationId = repository.createConversation()
+            repository.sendMessage(conversationId, "First message")
+            repository.sendMessage(conversationId, "Second message")
 
-        repository.sendMessage(conversationId, "Message 1")
-        Thread.sleep(10)
-        repository.sendMessage(conversationId, "Message 2")
-        Thread.sleep(10)
-        repository.sendMessage(conversationId, "Message 3")
+            val conversation = repository.getConversation(conversationId)
 
-        val conversation = repository.getConversation(conversationId)
-        assertEquals(6, conversation!!.messages.size)
+            assertNotNull(conversation)
 
-        val userMessages = conversation.messages.filter { it.isFromUser }
-        assertEquals(3, userMessages.size)
-    }
-
-    @Test
-    fun deleteConversation_removesConversationAndMessages() = runBlocking {
-        val conversationId = repository.createConversation()
-        repository.sendMessage(conversationId, "Some message")
-
-        repository.deleteConversation(conversationId)
-
-        val conversations = repository.getAllConversations()
-        assertTrue(conversations.isEmpty())
-
-        val conversation = repository.getConversation(conversationId)
-        assertNull(conversation)
-    }
+            val userMessages = conversation!!.messages.filter { it.isFromUser }
+            assertEquals(2, userMessages.size)
+        }
 
     @Test
-    fun sendMessage_createsMessagesWithCorrectConversationId() = runBlocking {
-        val conversationId1 = repository.createConversation()
-        val conversationId2 = repository.createConversation()
+    fun getConversation_returnsNullForNonExistent() =
+        runBlocking {
+            val conversation = repository.getConversation(999L)
 
-        repository.sendMessage(conversationId1, "Message for conv 1")
-        repository.sendMessage(conversationId2, "Message for conv 2")
+            assertNull(conversation)
+        }
 
-        val conv1 = repository.getConversation(conversationId1)
-        val conv2 = repository.getConversation(conversationId2)
+    @Test
+    fun sendMessage_createsMessage() =
+        runBlocking {
+            val conversationId = repository.createConversation()
 
-        assertEquals(2, conv1!!.messages.size)
-        assertEquals(2, conv2!!.messages.size)
-    }
+            val message = repository.sendMessage(conversationId, "Hello, bot!")
+
+            assertEquals("Hello, bot!", message.content)
+            assertTrue(message.isFromUser)
+            assertEquals(conversationId, message.conversationId)
+        }
+
+    @Test
+    fun sendMessage_multipleMessages_haveCorrectOrder() =
+        runBlocking {
+            val conversationId = repository.createConversation()
+
+            repository.sendMessage(conversationId, "Message 1")
+            Thread.sleep(10)
+            repository.sendMessage(conversationId, "Message 2")
+            Thread.sleep(10)
+            repository.sendMessage(conversationId, "Message 3")
+
+            val conversation = repository.getConversation(conversationId)
+            assertEquals(6, conversation!!.messages.size)
+
+            val userMessages = conversation.messages.filter { it.isFromUser }
+            assertEquals(3, userMessages.size)
+        }
+
+    @Test
+    fun deleteConversation_removesConversationAndMessages() =
+        runBlocking {
+            val conversationId = repository.createConversation()
+            repository.sendMessage(conversationId, "Some message")
+
+            repository.deleteConversation(conversationId)
+
+            val conversations = repository.getAllConversations()
+            assertTrue(conversations.isEmpty())
+
+            val conversation = repository.getConversation(conversationId)
+            assertNull(conversation)
+        }
+
+    @Test
+    fun sendMessage_createsMessagesWithCorrectConversationId() =
+        runBlocking {
+            val conversationId1 = repository.createConversation()
+            val conversationId2 = repository.createConversation()
+
+            repository.sendMessage(conversationId1, "Message for conv 1")
+            repository.sendMessage(conversationId2, "Message for conv 2")
+
+            val conv1 = repository.getConversation(conversationId1)
+            val conv2 = repository.getConversation(conversationId2)
+
+            assertEquals(2, conv1!!.messages.size)
+            assertEquals(2, conv2!!.messages.size)
+        }
 }

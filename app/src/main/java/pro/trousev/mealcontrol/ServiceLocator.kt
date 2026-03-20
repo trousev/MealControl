@@ -16,40 +16,38 @@ object ServiceLocator {
     private var secureStorage: SecureStorage? = null
     private var context: Context? = null
 
-    fun initialize(appContext: Context, testSecureStorage: SecureStorage? = null) {
+    fun initialize(
+        appContext: Context,
+        testSecureStorage: SecureStorage? = null,
+    ) {
         context = appContext.applicationContext
         database = MealControlDatabase.getDatabase(context!!)
         secureStorage = testSecureStorage ?: ApiKeyManager(context!!)
     }
 
-    fun provideMealRepository(): MealRepository {
-        return mealRepository ?: synchronized(this) {
+    fun provideMealRepository(): MealRepository =
+        mealRepository ?: synchronized(this) {
             mealRepository ?: MealRepository(database!!.mealDao()).also { mealRepository = it }
         }
-    }
 
-    fun provideChatRepository(): ChatRepository {
-        return chatRepository ?: synchronized(this) {
+    fun provideChatRepository(): ChatRepository =
+        chatRepository ?: synchronized(this) {
             chatRepository ?: ChatRepository(
                 database!!.conversationDao(),
                 database!!.messageDao(),
-                provideUserSettingsRepository()
+                provideUserSettingsRepository(),
             ).also { chatRepository = it }
         }
-    }
 
-    fun provideUserSettingsRepository(): UserSettingsRepository {
-        return userSettingsRepository ?: synchronized(this) {
+    fun provideUserSettingsRepository(): UserSettingsRepository =
+        userSettingsRepository ?: synchronized(this) {
             userSettingsRepository ?: UserSettingsRepository(
                 database!!.userSettingsDao(),
-                secureStorage!!
+                secureStorage!!,
             ).also { userSettingsRepository = it }
         }
-    }
 
-    fun provideDatabase(): MealControlDatabase {
-        return database ?: throw IllegalStateException("ServiceLocator not initialized. Call initialize() first.")
-    }
+    fun provideDatabase(): MealControlDatabase = database ?: throw IllegalStateException("ServiceLocator not initialized. Call initialize() first.")
 
     fun resetForTesting() {
         database = null
