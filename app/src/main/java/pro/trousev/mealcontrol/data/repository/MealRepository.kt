@@ -15,6 +15,23 @@ class MealRepository(private val mealDao: MealDao) {
         return mealDao.getMealWithComponents(mealId)
     }
 
+    private fun mapComponentsToEntities(
+        components: List<Triple<String, Double, List<Number>>>,
+        mealId: Long
+    ): List<MealComponentEntity> {
+        return components.map { (name, weight, values) ->
+            MealComponentEntity(
+                mealId = mealId,
+                name = name,
+                weightGrams = weight.toInt(),
+                calories = (values.getOrElse(0) { 0 } as? Number)?.toInt() ?: 0,
+                proteinGrams = (values.getOrElse(1) { 0 } as? Number)?.toInt() ?: 0,
+                fatGrams = (values.getOrElse(2) { 0 } as? Number)?.toInt() ?: 0,
+                carbGrams = (values.getOrElse(3) { 0 } as? Number)?.toInt() ?: 0
+            )
+        }
+    }
+
     suspend fun saveMeal(
         photoUri: String,
         description: String,
@@ -28,17 +45,7 @@ class MealRepository(private val mealDao: MealDao) {
         )
         val mealId = mealDao.insertMeal(meal)
 
-        val componentEntities = components.map { (name, weight, values) ->
-            MealComponentEntity(
-                mealId = mealId,
-                name = name,
-                weightGrams = weight.toInt(),
-                calories = (values.getOrElse(0) { 0 } as? Number)?.toInt() ?: 0,
-                proteinGrams = (values.getOrElse(1) { 0 } as? Number)?.toInt() ?: 0,
-                fatGrams = (values.getOrElse(2) { 0 } as? Number)?.toInt() ?: 0,
-                carbGrams = (values.getOrElse(3) { 0 } as? Number)?.toInt() ?: 0
-            )
-        }
+        val componentEntities = mapComponentsToEntities(components, mealId)
         mealDao.insertComponents(componentEntities)
 
         return mealId
@@ -58,17 +65,7 @@ class MealRepository(private val mealDao: MealDao) {
 
         mealDao.deleteComponentsByMealId(mealId)
 
-        val componentEntities = components.map { (name, weight, values) ->
-            MealComponentEntity(
-                mealId = mealId,
-                name = name,
-                weightGrams = weight.toInt(),
-                calories = (values.getOrElse(0) { 0 } as? Number)?.toInt() ?: 0,
-                proteinGrams = (values.getOrElse(1) { 0 } as? Number)?.toInt() ?: 0,
-                fatGrams = (values.getOrElse(2) { 0 } as? Number)?.toInt() ?: 0,
-                carbGrams = (values.getOrElse(3) { 0 } as? Number)?.toInt() ?: 0
-            )
-        }
+        val componentEntities = mapComponentsToEntities(components, mealId)
         mealDao.insertComponents(componentEntities)
     }
 
