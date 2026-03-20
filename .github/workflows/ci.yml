@@ -27,7 +27,7 @@ jobs:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'gradle.lockfile') }}
           restore-keys: |
             gradle-${{ runner.os }}-
 
