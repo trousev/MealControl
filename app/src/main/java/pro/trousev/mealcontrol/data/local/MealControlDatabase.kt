@@ -24,7 +24,7 @@ import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
         MessageEntity::class,
         UserSettingsEntity::class,
     ],
-    version = 6,
+    version = 7,
     exportSchema = false,
 )
 abstract class MealControlDatabase : RoomDatabase() {
@@ -88,6 +88,27 @@ abstract class MealControlDatabase : RoomDatabase() {
                 }
             }
 
+        private val MIGRATION_6_7 =
+            object : Migration(6, 7) {
+                override fun migrate(database: SupportSQLiteDatabase) {
+                    database.execSQL(
+                        "ALTER TABLE user_settings ADD COLUMN customModeEnabled INTEGER NOT NULL DEFAULT 0",
+                    )
+                    database.execSQL(
+                        "ALTER TABLE user_settings ADD COLUMN hideCaloriesEnabled INTEGER NOT NULL DEFAULT 0",
+                    )
+                    database.execSQL(
+                        "ALTER TABLE user_settings ADD COLUMN customProteinGrams INTEGER NOT NULL DEFAULT 0",
+                    )
+                    database.execSQL(
+                        "ALTER TABLE user_settings ADD COLUMN customFatGrams INTEGER NOT NULL DEFAULT 0",
+                    )
+                    database.execSQL(
+                        "ALTER TABLE user_settings ADD COLUMN customCarbGrams INTEGER NOT NULL DEFAULT 0",
+                    )
+                }
+            }
+
         fun getDatabase(context: Context): MealControlDatabase =
             instance ?: synchronized(this) {
                 val dbInstance =
@@ -101,6 +122,7 @@ abstract class MealControlDatabase : RoomDatabase() {
                             MIGRATION_3_4,
                             MIGRATION_4_5,
                             MIGRATION_5_6,
+                            MIGRATION_6_7,
                         ).build()
                 instance = dbInstance
                 dbInstance

@@ -40,6 +40,11 @@ enum class CalorieDistribution(
     CUSTOM(30, 30, 40),
 }
 
+enum class WorkingMode {
+    AUTOMATIC,
+    MANUAL,
+}
+
 data class CalorieCalculation(
     val bmr: Int,
     val tdee: Int,
@@ -62,9 +67,15 @@ data class SettingsFormState(
     val customFatPercent: Int = 30,
     val customCarbPercent: Int = 30,
     val openAiApiKey: String = "",
+    val workingMode: WorkingMode = WorkingMode.AUTOMATIC,
+    val hideCaloriesEnabled: Boolean = false,
+    val customProteinGrams: Int = 0,
+    val customFatGrams: Int = 0,
+    val customCarbGrams: Int = 0,
     val isValid: Boolean = false,
     val calculation: CalorieCalculation? = null,
     val customDistributionError: String? = null,
+    val customModeError: String? = null,
 )
 
 class SettingsViewModel : ViewModel() {
@@ -109,6 +120,33 @@ class SettingsViewModel : ViewModel() {
                         Gender.MALE
                     }
 
+                val workingMode = if (settings.customModeEnabled) WorkingMode.MANUAL else WorkingMode.AUTOMATIC
+                val calculation =
+                    if (settings.customModeEnabled) {
+                        CalorieCalculation(
+                            bmr = 0,
+                            tdee = 0,
+                            dailyDeficit = 0,
+                            dailyCalories = settings.customProteinGrams * 4 + settings.customFatGrams * 9 + settings.customCarbGrams * 4,
+                            proteinGrams = settings.customProteinGrams,
+                            fatGrams = settings.customFatGrams,
+                            carbGrams = settings.customCarbGrams,
+                        )
+                    } else {
+                        calculateCalories(
+                            weightKg = settings.weightKg,
+                            heightCm = settings.heightCm,
+                            age = settings.age,
+                            gender = gender,
+                            targetWeightChangeKg = settings.targetWeightChangeKg,
+                            activityLevel = activityLevel,
+                            distribution = distribution,
+                            customProtein = settings.customProteinPercent,
+                            customFat = settings.customFatPercent,
+                            customCarb = settings.customCarbPercent,
+                        )
+                    }
+
                 _formState.value =
                     SettingsFormState(
                         weightKg = settings.weightKg.toString(),
@@ -121,20 +159,13 @@ class SettingsViewModel : ViewModel() {
                         customProteinPercent = settings.customProteinPercent,
                         customFatPercent = settings.customFatPercent,
                         openAiApiKey = settings.openAiApiKey,
+                        workingMode = workingMode,
+                        hideCaloriesEnabled = settings.hideCaloriesEnabled,
+                        customProteinGrams = settings.customProteinGrams,
+                        customFatGrams = settings.customFatGrams,
+                        customCarbGrams = settings.customCarbGrams,
                         isValid = true,
-                        calculation =
-                            calculateCalories(
-                                weightKg = settings.weightKg,
-                                heightCm = settings.heightCm,
-                                age = settings.age,
-                                gender = gender,
-                                targetWeightChangeKg = settings.targetWeightChangeKg,
-                                activityLevel = activityLevel,
-                                distribution = distribution,
-                                customProtein = settings.customProteinPercent,
-                                customFat = settings.customFatPercent,
-                                customCarb = settings.customCarbPercent,
-                            ),
+                        calculation = calculation,
                     )
             }
             _settingsLoaded.value = true
@@ -211,6 +242,108 @@ class SettingsViewModel : ViewModel() {
         saveTrigger.trySend(Unit)
     }
 
+    fun updateWorkingMode(mode: WorkingMode) {
+        val currentMode = _formState.value.workingMode
+        if (currentMode == mode) return
+
+        if (mode == WorkingMode.MANUAL) {
+            val currentCalc = _formState.value.calculation
+            val shouldPrepopulate =
+                currentCalc != null &&
+                    _formState.value.customProteinGrams == 0 &&
+                    _formState.value.customFatGrams == 0 &&
+                    _formState.value.customCarbGrams == 0
+            if (shouldPrepopulate) {
+                _formState.value =
+                    _formState.value.copy(
+                        workingMode = mode,
+                        customProteinGrams = currentCalc.proteinGrams,
+                        customFatGrams = currentCalc.fatGrams,
+                        customCarbGrams = currentCalc.carbGrams,
+                    )
+            } else {
+                _formState.value = _formState.value.copy(workingMode = mode)
+            }
+            recalculateManualMode()
+        } else {
+            _formState.value = _formState.value.copy(workingMode = mode)
+            recalculate()
+        }
+    }
+
+    fun updateHideCalories(enabled: Boolean) {
+        _formState.value = _formState.value.copy(hideCaloriesEnabled = enabled)
+        saveTrigger.trySend(Unit)
+    }
+
+    fun updateCustomProteinGrams(grams: Int) {
+        _formState.value =
+            _formState.value.copy(
+                customProteinGrams = grams.coerceIn(0, 1000),
+                customModeError = null,
+            )
+        recalculateManualMode()
+    }
+
+    fun updateCustomFatGrams(grams: Int) {
+        _formState.value =
+            _formState.value.copy(
+                customFatGrams = grams.coerceIn(0, 1000),
+                customModeError = null,
+            )
+        recalculateManualMode()
+    }
+
+    fun updateCustomCarbGrams(grams: Int) {
+        _formState.value =
+            _formState.value.copy(
+                customCarbGrams = grams.coerceIn(0, 1000),
+                customModeError = null,
+            )
+        recalculateManualMode()
+    }
+
+    private fun recalculateManualMode() {
+        val state = _formState.value
+        if (state.workingMode != WorkingMode.MANUAL) return
+
+        val hasAtLeastOneMacro = state.customProteinGrams > 0 || state.customFatGrams > 0 || state.customCarbGrams > 0
+        val customModeError =
+            if (!hasAtLeastOneMacro &&
+                state.customProteinGrams == 0 &&
+                state.customFatGrams == 0 &&
+                state.customCarbGrams == 0
+            ) {
+                "At least one macro must be greater than 0"
+            } else {
+                null
+            }
+
+        if (hasAtLeastOneMacro) {
+            val proteinG = state.customProteinGrams
+            val fatG = state.customFatGrams
+            val carbG = state.customCarbGrams
+            val proteinCalories = proteinG * 4
+            val fatCalories = fatG * 9
+            val carbCalories = carbG * 4
+            val calories = proteinCalories + fatCalories + carbCalories
+            val calculation =
+                CalorieCalculation(
+                    bmr = 0,
+                    tdee = 0,
+                    dailyDeficit = 0,
+                    dailyCalories = calories,
+                    proteinGrams = proteinG,
+                    fatGrams = fatG,
+                    carbGrams = carbG,
+                )
+            _formState.value = state.copy(isValid = true, calculation = calculation, customModeError = null)
+            saveTrigger.trySend(Unit)
+        } else {
+            _formState.value = state.copy(isValid = false, calculation = null, customModeError = customModeError)
+        }
+    }
+
     private fun recalculate() {
         val state = _formState.value
         val weight = state.weightKg.toFloatOrNull() ?: 0f
@@ -251,6 +384,8 @@ class SettingsViewModel : ViewModel() {
 
     private suspend fun performSave() {
         val state = _formState.value
+        val isManualMode = state.workingMode == WorkingMode.MANUAL
+
         val settings =
             UserSettingsEntity(
                 id = 1,
@@ -265,6 +400,11 @@ class SettingsViewModel : ViewModel() {
                 customFatPercent = state.customFatPercent,
                 customCarbPercent = state.customCarbPercent,
                 openAiApiKey = state.openAiApiKey,
+                customModeEnabled = isManualMode,
+                hideCaloriesEnabled = state.hideCaloriesEnabled,
+                customProteinGrams = state.customProteinGrams,
+                customFatGrams = state.customFatGrams,
+                customCarbGrams = state.customCarbGrams,
             )
         repository.saveSettings(settings)
     }
