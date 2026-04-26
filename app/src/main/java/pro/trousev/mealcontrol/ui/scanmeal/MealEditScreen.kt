@@ -61,6 +61,7 @@ fun MealEditScreen(
     showProtein: Boolean = true,
     showFat: Boolean = true,
     showCarbs: Boolean = true,
+    hideCalories: Boolean = false,
     onUpdate: (String, List<Triple<String, Double, List<Number>>>) -> Unit,
     onDelete: () -> Unit,
     onRetake: () -> Unit,
@@ -113,6 +114,7 @@ fun MealEditScreen(
                 showProtein = showProtein,
                 showFat = showFat,
                 showCarbs = showCarbs,
+                hideCalories = hideCalories,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -227,6 +229,7 @@ private fun ChatContent(
     showProtein: Boolean = true,
     showFat: Boolean = true,
     showCarbs: Boolean = true,
+    hideCalories: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -268,6 +271,7 @@ private fun ChatContent(
                 showProtein = showProtein,
                 showFat = showFat,
                 showCarbs = showCarbs,
+                hideCalories = hideCalories,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
         }
@@ -335,6 +339,7 @@ private fun MealComponentsList(
     showProtein: Boolean = true,
     showFat: Boolean = true,
     showCarbs: Boolean = true,
+    hideCalories: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -386,16 +391,18 @@ private fun MealComponentsList(
                             )
                         }
                     }
-                    Column(horizontalAlignment = Alignment.End) {
-                        Text(
-                            text = "${component.energyKcal.toInt()}",
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = "KCAL",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                    if (!hideCalories) {
+                        Column(horizontalAlignment = Alignment.End) {
+                            Text(
+                                text = "${component.energyKcal.toInt()}",
+                                style = MaterialTheme.typography.titleMedium,
+                            )
+                            Text(
+                                text = "KCAL",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
@@ -418,15 +425,20 @@ private fun MealComponentsList(
                 Text(
                     text =
                         buildString {
-                            append("$totalCalories kcal")
+                            if (!hideCalories) {
+                                append("$totalCalories kcal")
+                            }
                             if (showProtein) {
-                                append(" P:${totalProtein}g")
+                                if (isNotEmpty()) append(" ")
+                                append("P:${totalProtein}g")
                             }
                             if (showFat) {
-                                append(" F:${totalFat}g")
+                                if (isNotEmpty()) append(" ")
+                                append("F:${totalFat}g")
                             }
                             if (showCarbs) {
-                                append(" C:${totalCarbs}g")
+                                if (isNotEmpty()) append(" ")
+                                append("C:${totalCarbs}g")
                             }
                         },
                     style = MaterialTheme.typography.titleMedium,
