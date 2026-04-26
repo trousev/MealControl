@@ -11,6 +11,7 @@ export ANDROID_HOME
 
 VARIANT="debug"
 ALL_VARIANTS=false
+WRITE_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -26,9 +27,13 @@ while [[ $# -gt 0 ]]; do
             VARIANT="debug"
             shift
             ;;
+        --write)
+            WRITE_MODE=true
+            shift
+            ;;
         *)
             echo "Unknown option: $1"
-            echo "Usage: $0 [--debug|--release|--all]"
+            echo "Usage: $0 [--debug|--release|--all] [--write]"
             exit 1
             ;;
     esac
@@ -46,7 +51,12 @@ fi
 
 echo ""
 echo "Running ktlint..."
-./gradlew ktlintCheck
+if [ "$WRITE_MODE" = true ]; then
+    echo "Auto-formatting code..."
+    ./gradlew ktlintFormat
+else
+    ./gradlew ktlintCheck
+fi
 
 echo ""
 echo "Running detekt..."
