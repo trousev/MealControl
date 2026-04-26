@@ -24,6 +24,17 @@ class ChatRepository(
     private val messageDao: MessageDao,
     private val userSettingsRepository: UserSettingsRepository,
 ) {
+    private var openAiService: OpenAiService? = null
+    private var cachedApiKey: String? = null
+
+    private fun getOpenAiService(apiKey: String): OpenAiService {
+        if (openAiService == null || cachedApiKey != apiKey) {
+            cachedApiKey = apiKey
+            openAiService = OpenAiService(apiKey)
+        }
+        return openAiService!!
+    }
+
     suspend fun getAllConversations(): List<ConversationWithLastMessage> {
         val conversations = conversationDao.getChatConversations()
         return conversations.map { conversation ->
@@ -93,8 +104,8 @@ class ChatRepository(
 
         return withContext(Dispatchers.IO) {
             try {
-                val openAiService = OpenAiService(apiKey)
-                val result = openAiService.chat(truncatedMessages)
+                val service = getOpenAiService(apiKey)
+                val result = service.chat(truncatedMessages)
 
                 when {
                     result.isSuccess -> {
