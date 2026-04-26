@@ -133,19 +133,19 @@ class SettingsViewModel : ViewModel() {
                             carbGrams = settings.customCarbGrams,
                         )
                     } else {
-                    calculateCalories(
-                        weightKg = settings.weightKg,
-                        heightCm = settings.heightCm,
-                        age = settings.age,
-                        gender = gender,
-                        targetWeightChangeKg = settings.targetWeightChangeKg,
-                        activityLevel = activityLevel,
-                        distribution = distribution,
-                        customProtein = settings.customProteinPercent,
-                        customFat = settings.customFatPercent,
-                        customCarb = settings.customCarbPercent,
-                    )
-                }
+                        calculateCalories(
+                            weightKg = settings.weightKg,
+                            heightCm = settings.heightCm,
+                            age = settings.age,
+                            gender = gender,
+                            targetWeightChangeKg = settings.targetWeightChangeKg,
+                            activityLevel = activityLevel,
+                            distribution = distribution,
+                            customProtein = settings.customProteinPercent,
+                            customFat = settings.customFatPercent,
+                            customCarb = settings.customCarbPercent,
+                        )
+                    }
 
                 _formState.value =
                     SettingsFormState(
@@ -254,12 +254,13 @@ class SettingsViewModel : ViewModel() {
                     _formState.value.customFatGrams == 0 &&
                     _formState.value.customCarbGrams == 0
             if (shouldPrepopulate) {
-                _formState.value = _formState.value.copy(
-                    workingMode = mode,
-                    customProteinGrams = currentCalc.proteinGrams,
-                    customFatGrams = currentCalc.fatGrams,
-                    customCarbGrams = currentCalc.carbGrams,
-                )
+                _formState.value =
+                    _formState.value.copy(
+                        workingMode = mode,
+                        customProteinGrams = currentCalc.proteinGrams,
+                        customFatGrams = currentCalc.fatGrams,
+                        customCarbGrams = currentCalc.carbGrams,
+                    )
             } else {
                 _formState.value = _formState.value.copy(workingMode = mode)
             }
@@ -307,23 +308,35 @@ class SettingsViewModel : ViewModel() {
         if (state.workingMode != WorkingMode.MANUAL) return
 
         val hasAtLeastOneMacro = state.customProteinGrams > 0 || state.customFatGrams > 0 || state.customCarbGrams > 0
-        val customModeError = if (!hasAtLeastOneMacro && state.customProteinGrams == 0 && state.customFatGrams == 0 && state.customCarbGrams == 0) {
-            "At least one macro must be greater than 0"
-        } else {
-            null
-        }
+        val customModeError =
+            if (!hasAtLeastOneMacro &&
+                state.customProteinGrams == 0 &&
+                state.customFatGrams == 0 &&
+                state.customCarbGrams == 0
+            ) {
+                "At least one macro must be greater than 0"
+            } else {
+                null
+            }
 
         if (hasAtLeastOneMacro) {
-            val calories = state.customProteinGrams * 4 + state.customFatGrams * 9 + state.customCarbGrams * 4
-            val calculation = CalorieCalculation(
-                bmr = 0,
-                tdee = 0,
-                dailyDeficit = 0,
-                dailyCalories = calories,
-                proteinGrams = state.customProteinGrams,
-                fatGrams = state.customFatGrams,
-                carbGrams = state.customCarbGrams,
-            )
+            val proteinG = state.customProteinGrams
+            val fatG = state.customFatGrams
+            val carbG = state.customCarbGrams
+            val proteinCalories = proteinG * 4
+            val fatCalories = fatG * 9
+            val carbCalories = carbG * 4
+            val calories = proteinCalories + fatCalories + carbCalories
+            val calculation =
+                CalorieCalculation(
+                    bmr = 0,
+                    tdee = 0,
+                    dailyDeficit = 0,
+                    dailyCalories = calories,
+                    proteinGrams = proteinG,
+                    fatGrams = fatG,
+                    carbGrams = carbG,
+                )
             _formState.value = state.copy(isValid = true, calculation = calculation, customModeError = null)
             saveTrigger.trySend(Unit)
         } else {

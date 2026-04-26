@@ -57,7 +57,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .imePadding(),
         verticalArrangement = Arrangement.spacedBy(16.dp),
-) {
+    ) {
         Text(
             text = "Working Mode",
             style = MaterialTheme.typography.titleLarge,

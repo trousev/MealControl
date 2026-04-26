@@ -9,16 +9,17 @@ import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
 class DailyBudgetProviderTest {
     @Test
     fun calculateBudget_normalMode_calculatesFromBodyMeasurements() {
-        val settings = UserSettingsEntity(
-            weightKg = 80f,
-            heightCm = 180f,
-            age = 30,
-            gender = "MALE",
-            targetWeightChangeKg = 0f,
-            activityLevel = 2,
-            calorieDistribution = "HIGH_PROTEIN",
-            customModeEnabled = false,
-        )
+        val settings =
+            UserSettingsEntity(
+                weightKg = 80f,
+                heightCm = 180f,
+                age = 30,
+                gender = "MALE",
+                targetWeightChangeKg = 0f,
+                activityLevel = 2,
+                calorieDistribution = "HIGH_PROTEIN",
+                customModeEnabled = false,
+            )
 
         val budget = DailyBudgetProvider.calculateBudget(settings)
 
@@ -30,16 +31,17 @@ class DailyBudgetProviderTest {
 
     @Test
     fun calculateBudget_normalMode_femaleCalculatesCorrectly() {
-        val settings = UserSettingsEntity(
-            weightKg = 60f,
-            heightCm = 165f,
-            age = 25,
-            gender = "FEMALE",
-            targetWeightChangeKg = 0f,
-            activityLevel = 2,
-            calorieDistribution = "BALANCED",
-            customModeEnabled = false,
-        )
+        val settings =
+            UserSettingsEntity(
+                weightKg = 60f,
+                heightCm = 165f,
+                age = 25,
+                gender = "FEMALE",
+                targetWeightChangeKg = 0f,
+                activityLevel = 2,
+                calorieDistribution = "BALANCED",
+                customModeEnabled = false,
+            )
 
         val budget = DailyBudgetProvider.calculateBudget(settings)
 
@@ -51,19 +53,20 @@ class DailyBudgetProviderTest {
 
     @Test
     fun calculateBudget_customMode_usesDirectGramTargets() {
-        val settings = UserSettingsEntity(
-            weightKg = 80f,
-            heightCm = 180f,
-            age = 30,
-            gender = "MALE",
-            targetWeightChangeKg = 0f,
-            activityLevel = 2,
-            calorieDistribution = "HIGH_PROTEIN",
-            customModeEnabled = true,
-            customProteinGrams = 150,
-            customFatGrams = 80,
-            customCarbGrams = 200,
-        )
+        val settings =
+            UserSettingsEntity(
+                weightKg = 80f,
+                heightCm = 180f,
+                age = 30,
+                gender = "MALE",
+                targetWeightChangeKg = 0f,
+                activityLevel = 2,
+                calorieDistribution = "HIGH_PROTEIN",
+                customModeEnabled = true,
+                customProteinGrams = 150,
+                customFatGrams = 80,
+                customCarbGrams = 200,
+            )
 
         val budget = DailyBudgetProvider.calculateBudget(settings)
 
@@ -75,12 +78,13 @@ class DailyBudgetProviderTest {
 
     @Test
     fun calculateBudget_customMode_zeroMacros() {
-        val settings = UserSettingsEntity(
-            customModeEnabled = true,
-            customProteinGrams = 0,
-            customFatGrams = 0,
-            customCarbGrams = 0,
-        )
+        val settings =
+            UserSettingsEntity(
+                customModeEnabled = true,
+                customProteinGrams = 0,
+                customFatGrams = 0,
+                customCarbGrams = 0,
+            )
 
         val budget = DailyBudgetProvider.calculateBudget(settings)
 
@@ -92,12 +96,13 @@ class DailyBudgetProviderTest {
 
     @Test
     fun calculateBudget_customMode_partialMacros() {
-        val settings = UserSettingsEntity(
-            customModeEnabled = true,
-            customProteinGrams = 100,
-            customFatGrams = 50,
-            customCarbGrams = 0,
-        )
+        val settings =
+            UserSettingsEntity(
+                customModeEnabled = true,
+                customProteinGrams = 100,
+                customFatGrams = 50,
+                customCarbGrams = 0,
+            )
 
         val budget = DailyBudgetProvider.calculateBudget(settings)
 
@@ -109,9 +114,7 @@ class DailyBudgetProviderTest {
 
     @Test
     fun shouldHideCalories_returnsFalseWhenDisabled() {
-        val settings = UserSettingsEntity(
-            hideCaloriesEnabled = false,
-        )
+        val settings = UserSettingsEntity(hideCaloriesEnabled = false)
 
         val result = DailyBudgetProvider.shouldHideCalories(settings)
 
@@ -120,9 +123,7 @@ class DailyBudgetProviderTest {
 
     @Test
     fun shouldHideCalories_returnsTrueWhenEnabled() {
-        val settings = UserSettingsEntity(
-            hideCaloriesEnabled = true,
-        )
+        val settings = UserSettingsEntity(hideCaloriesEnabled = true)
 
         val result = DailyBudgetProvider.shouldHideCalories(settings)
 
