@@ -64,42 +64,32 @@ fun SettingsScreen(
         )
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier =
+                Modifier
+                    .fillMaxWidth()
+                    .selectableGroup(),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            val autoModifier =
-                Modifier
-                    .selectableGroup()
-                    .weight(1f)
-            Row(
-                modifier = autoModifier,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(
-                    selected = formState.workingMode == WorkingMode.AUTOMATIC,
-                    onClick = { viewModel.updateWorkingMode(WorkingMode.AUTOMATIC) },
-                )
-                Text(
-                    text = "Automatic",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
-            }
-            val manualModifier =
-                Modifier
-                    .selectableGroup()
-                    .weight(1f)
-            Row(
-                modifier = manualModifier,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                RadioButton(
-                    selected = formState.workingMode == WorkingMode.MANUAL,
-                    onClick = { viewModel.updateWorkingMode(WorkingMode.MANUAL) },
-                )
-                Text(
-                    text = "Manual",
-                    modifier = Modifier.padding(start = 8.dp),
-                )
+            WorkingMode.entries.forEach { mode ->
+                Row(
+                    modifier =
+                        Modifier
+                            .selectable(
+                                selected = formState.workingMode == mode,
+                                onClick = { viewModel.updateWorkingMode(mode) },
+                                role = Role.RadioButton,
+                            ),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    RadioButton(
+                        selected = formState.workingMode == mode,
+                        onClick = null,
+                    )
+                    Text(
+                        text = mode.name.lowercase().replaceFirstChar { it.uppercase() },
+                        modifier = Modifier.padding(start = 8.dp),
+                    )
+                }
             }
         }
 
