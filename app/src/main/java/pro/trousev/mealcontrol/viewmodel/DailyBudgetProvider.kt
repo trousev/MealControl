@@ -28,6 +28,21 @@ object DailyBudgetProvider {
 
     fun shouldHideCalories(settings: UserSettingsEntity): Boolean = settings.hideCaloriesEnabled
 
+    fun shouldShowProtein(
+        customModeEnabled: Boolean,
+        budget: DailyBudget,
+    ): Boolean = !customModeEnabled || budget.protein > 0
+
+    fun shouldShowFat(
+        customModeEnabled: Boolean,
+        budget: DailyBudget,
+    ): Boolean = !customModeEnabled || budget.fat > 0
+
+    fun shouldShowCarbs(
+        customModeEnabled: Boolean,
+        budget: DailyBudget,
+    ): Boolean = !customModeEnabled || budget.carbs > 0
+
     private fun calculateNormalBudget(settings: UserSettingsEntity): DailyBudget {
         val gender =
             try {

@@ -35,8 +35,11 @@ import pro.trousev.mealcontrol.ui.scanmeal.MealEditScreen
 import pro.trousev.mealcontrol.ui.scanmeal.ScanMealScreen
 import pro.trousev.mealcontrol.ui.settings.SettingsScreen
 import pro.trousev.mealcontrol.viewmodel.ChatViewModel
+import pro.trousev.mealcontrol.viewmodel.DailyBudget
+import pro.trousev.mealcontrol.viewmodel.DailyBudgetProvider
 import pro.trousev.mealcontrol.viewmodel.MealViewModel
 import pro.trousev.mealcontrol.viewmodel.SettingsViewModel
+import pro.trousev.mealcontrol.viewmodel.WorkingMode
 
 @Composable
 fun AppContent() {
@@ -171,7 +174,10 @@ private fun AppNavHost(
                     },
                 ),
         ) { backStackEntry ->
-            val mealId = backStackEntry.arguments?.getLong(Screen.MealEdit.MEAL_ID_ARG) ?: -1L
+            val mealId =
+                backStackEntry.arguments?.getLong(Screen.MealEdit.MEAL_ID_ARG)
+                    ?: -1L
+            val settingsState by settingsViewModel.formState.collectAsState()
             val pendingPhotoUri by mealViewModel.pendingPhotoUri.collectAsState()
             var existingMeal by remember { mutableStateOf<MealWithComponents?>(null) }
             val scope = rememberCoroutineScope()
@@ -186,9 +192,26 @@ private fun AppNavHost(
             val currentExistingMeal = existingMeal
 
             if (currentExistingMeal != null || currentPendingPhoto != null) {
+                val calculation = settingsState.calculation
+                val budget =
+                    calculation?.let {
+                        DailyBudget(
+                            calories = it.dailyCalories,
+                            protein = it.proteinGrams,
+                            fat = it.fatGrams,
+                            carbs = it.carbGrams,
+                        )
+                    } ?: DailyBudget(0, 0, 0, 0)
+                val isManual = settingsState.workingMode == WorkingMode.MANUAL
+                val showProteinFlag = DailyBudgetProvider.shouldShowProtein(isManual, budget)
+                val showFatFlag = DailyBudgetProvider.shouldShowFat(isManual, budget)
+                val showCarbsFlag = DailyBudgetProvider.shouldShowCarbs(isManual, budget)
                 MealEditScreen(
                     photoUri = currentExistingMeal?.meal?.photoUri ?: currentPendingPhoto!!,
                     existingMeal = currentExistingMeal,
+                    showProtein = showProteinFlag,
+                    showFat = showFatFlag,
+                    showCarbs = showCarbsFlag,
                     onUpdate = { description, components ->
                         if (currentExistingMeal != null) {
                             mealViewModel.updateMeal(
