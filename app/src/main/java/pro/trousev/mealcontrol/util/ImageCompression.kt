@@ -33,9 +33,7 @@ object ImageCompression {
         bitmap = rotateImageIfRequired(bitmap, filePath)
 
         val scaledBitmap = scaleBitmap(bitmap, MAX_DIMENSION)
-        if (scaledBitmap != bitmap) {
-            bitmap.recycle()
-        }
+        bitmap.recycle()
 
         val outputStream = ByteArrayOutputStream()
         scaledBitmap.compress(Bitmap.CompressFormat.JPEG, COMPRESSION_QUALITY, outputStream)
@@ -71,15 +69,15 @@ object ImageCompression {
         val width = bitmap.width
         val height = bitmap.height
 
-        if (width <= maxDimension && height <= maxDimension) {
-            return bitmap
-        }
-
         val scale =
-            if (width > height) {
-                maxDimension.toFloat() / width
+            if (width > maxDimension || height > maxDimension) {
+                if (width > height) {
+                    maxDimension.toFloat() / width
+                } else {
+                    maxDimension.toFloat() / height
+                }
             } else {
-                maxDimension.toFloat() / height
+                1f
             }
 
         val newWidth = (width * scale).toInt()
