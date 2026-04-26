@@ -23,7 +23,7 @@ splashscreen = "1.0.1"
 securityCrypto = "1.1.0-alpha06"
 ktlint = "1.7.2"
 ktlintPlugin = "14.2.0"
-detekt = "1.23.7"
+detekt = "1.23.8"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
