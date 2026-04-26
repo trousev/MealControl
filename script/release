@@ -2,6 +2,24 @@
 set -e
 cd "$(dirname "$0")/.."
 
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" != "master" ]; then
+    echo "Error: release can only run on the master branch (current: $BRANCH)" >&2
+    exit 1
+fi
+
+LOCAL=$(git rev-parse HEAD)
+REMOTE=$(git rev-parse origin/master)
+if [ "$LOCAL" != "$REMOTE" ]; then
+    echo "Error: master is not up to date with origin/master. Pull or push first." >&2
+    exit 1
+fi
+
+if [ -n "$(git status --porcelain)" ]; then
+    echo "Error: working tree is not clean. Commit or stash your changes first." >&2
+    exit 1
+fi
+
 LATEST_TAG=$(git tag | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -V | tail -1)
 
 if [ -z "$LATEST_TAG" ]; then
