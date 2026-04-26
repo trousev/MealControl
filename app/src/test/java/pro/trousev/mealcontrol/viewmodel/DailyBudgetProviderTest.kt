@@ -131,6 +131,24 @@ class DailyBudgetProviderTest {
     }
 
     @Test
+    fun shouldHideBudgetExceeded_returnsFalseWhenDisabled() {
+        val settings = UserSettingsEntity(hideBudgetExceededEnabled = false)
+
+        val result = DailyBudgetProvider.shouldHideBudgetExceeded(settings)
+
+        assertFalse(result)
+    }
+
+    @Test
+    fun shouldHideBudgetExceeded_returnsTrueWhenEnabled() {
+        val settings = UserSettingsEntity(hideBudgetExceededEnabled = true)
+
+        val result = DailyBudgetProvider.shouldHideBudgetExceeded(settings)
+
+        assertTrue(result)
+    }
+
+    @Test
     fun calculateBudget_customMode_doesNotUseBodyMeasurements() {
         val settings =
             UserSettingsEntity(

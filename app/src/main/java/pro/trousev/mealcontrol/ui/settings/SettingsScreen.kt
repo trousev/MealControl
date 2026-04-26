@@ -126,6 +126,29 @@ fun SettingsScreen(
             )
         }
 
+        val hideBudgetExceededModifier =
+            Modifier
+                .fillMaxWidth()
+                .selectable(
+                    selected = formState.hideBudgetExceededEnabled,
+                    onClick = { viewModel.updateHideBudgetExceeded(!formState.hideBudgetExceededEnabled) },
+                    role = Role.Checkbox,
+                )
+        Row(
+            modifier = hideBudgetExceededModifier,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Checkbox(
+                checked = formState.hideBudgetExceededEnabled,
+                onCheckedChange = null,
+            )
+            Text(
+                text = "Hide budget exceeds",
+                modifier = Modifier.padding(start = 8.dp),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        }
+
         if (formState.workingMode == WorkingMode.MANUAL) {
             Text(
                 text = "Daily Macro Targets",

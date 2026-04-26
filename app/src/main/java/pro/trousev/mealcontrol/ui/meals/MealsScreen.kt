@@ -77,6 +77,7 @@ fun MealsScreen(
     val targetFat = settingsFormState.calculation?.fatGrams ?: 0
     val targetCarbs = settingsFormState.calculation?.carbGrams ?: 0
     val hideCalories = settingsFormState.hideCaloriesEnabled
+    val hideBudgetExceeded = settingsFormState.hideBudgetExceededEnabled
     val isManualMode = settingsFormState.workingMode == WorkingMode.MANUAL
     val budget =
         DailyBudget(
@@ -122,6 +123,7 @@ fun MealsScreen(
                 targetFat = targetFat,
                 targetCarbs = targetCarbs,
                 hideCalories = hideCalories,
+                hideBudgetExceeded = hideBudgetExceeded,
                 isManualMode = isManualMode,
                 budget = budget,
                 onAddMealClick = onAddMealClick,
@@ -151,6 +153,7 @@ private fun DayPage(
     targetFat: Int,
     targetCarbs: Int,
     hideCalories: Boolean,
+    hideBudgetExceeded: Boolean,
     isManualMode: Boolean,
     budget: DailyBudget,
     onAddMealClick: () -> Unit,
@@ -192,6 +195,7 @@ private fun DayPage(
                     targetCarbs = targetCarbs,
                     remainingCarbs = remainingCarbs,
                     hideCalories = hideCalories,
+                    hideBudgetExceeded = hideBudgetExceeded,
                     showProtein = showProtein,
                     showFat = showFat,
                     showCarbs = showCarbs,
@@ -283,6 +287,7 @@ private fun DaySummaryCard(
     targetCarbs: Int,
     remainingCarbs: Int,
     hideCalories: Boolean,
+    hideBudgetExceeded: Boolean,
     showProtein: Boolean,
     showFat: Boolean,
     showCarbs: Boolean,
@@ -314,32 +319,68 @@ private fun DaySummaryCard(
 
             if (isToday) {
                 if (!hideCalories) {
+                    val caloriesText =
+                        if (remainingCalories >= 0) {
+                            "$remainingCalories / $targetCalories kcal left"
+                        } else if (hideBudgetExceeded) {
+                            "$consumedCalories kcal already consumed"
+                        } else {
+                            "${-remainingCalories} / $targetCalories kcal over"
+                        }
+                    val caloriesColor = if (remainingCalories < 0 && !hideBudgetExceeded) overColor else MaterialTheme.colorScheme.onPrimaryContainer
                     Text(
-                        text = if (remainingCalories >= 0) "$remainingCalories / $targetCalories kcal left" else "${-remainingCalories} / $targetCalories kcal over",
+                        text = caloriesText,
                         style = MaterialTheme.typography.headlineSmall,
-                        color = if (remainingCalories < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = caloriesColor,
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                 }
                 if (showProtein) {
+                    val proteinText =
+                        if (remainingProtein >= 0) {
+                            "$remainingProtein / ${targetProtein}g protein left"
+                        } else if (hideBudgetExceeded) {
+                            "${consumedProtein}g of protein already consumed"
+                        } else {
+                            "${-remainingProtein} / ${targetProtein}g protein over"
+                        }
+                    val proteinColor = if (remainingProtein < 0 && !hideBudgetExceeded) overColor else MaterialTheme.colorScheme.onPrimaryContainer
                     Text(
-                        text = if (remainingProtein >= 0) "$remainingProtein / ${targetProtein}g protein left" else "${-remainingProtein} / ${targetProtein}g protein over",
+                        text = proteinText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (remainingProtein < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = proteinColor,
                     )
                 }
                 if (showFat) {
+                    val fatText =
+                        if (remainingFat >= 0) {
+                            "$remainingFat / ${targetFat}g fat left"
+                        } else if (hideBudgetExceeded) {
+                            "${consumedFat}g of fat already consumed"
+                        } else {
+                            "${-remainingFat} / ${targetFat}g fat over"
+                        }
+                    val fatColor = if (remainingFat < 0 && !hideBudgetExceeded) overColor else MaterialTheme.colorScheme.onPrimaryContainer
                     Text(
-                        text = if (remainingFat >= 0) "$remainingFat / ${targetFat}g fat left" else "${-remainingFat} / ${targetFat}g fat over",
+                        text = fatText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (remainingFat < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = fatColor,
                     )
                 }
                 if (showCarbs) {
+                    val carbsText =
+                        if (remainingCarbs >= 0) {
+                            "$remainingCarbs / ${targetCarbs}g carbs left"
+                        } else if (hideBudgetExceeded) {
+                            "${consumedCarbs}g of carbs already consumed"
+                        } else {
+                            "${-remainingCarbs} / ${targetCarbs}g carbs over"
+                        }
+                    val carbsColor = if (remainingCarbs < 0 && !hideBudgetExceeded) overColor else MaterialTheme.colorScheme.onPrimaryContainer
                     Text(
-                        text = if (remainingCarbs >= 0) "$remainingCarbs / ${targetCarbs}g carbs left" else "${-remainingCarbs} / ${targetCarbs}g carbs over",
+                        text = carbsText,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = if (remainingCarbs < 0) overColor else MaterialTheme.colorScheme.onPrimaryContainer,
+                        color = carbsColor,
                     )
                 }
             } else {

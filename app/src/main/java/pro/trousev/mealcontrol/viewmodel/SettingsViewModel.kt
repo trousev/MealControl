@@ -69,6 +69,7 @@ data class SettingsFormState(
     val openAiApiKey: String = "",
     val workingMode: WorkingMode = WorkingMode.AUTOMATIC,
     val hideCaloriesEnabled: Boolean = false,
+    val hideBudgetExceededEnabled: Boolean = false,
     val customProteinGrams: Int = 0,
     val customFatGrams: Int = 0,
     val customCarbGrams: Int = 0,
@@ -161,6 +162,7 @@ class SettingsViewModel : ViewModel() {
                         openAiApiKey = settings.openAiApiKey,
                         workingMode = workingMode,
                         hideCaloriesEnabled = settings.hideCaloriesEnabled,
+                        hideBudgetExceededEnabled = settings.hideBudgetExceededEnabled,
                         customProteinGrams = settings.customProteinGrams,
                         customFatGrams = settings.customFatGrams,
                         customCarbGrams = settings.customCarbGrams,
@@ -276,6 +278,11 @@ class SettingsViewModel : ViewModel() {
         saveTrigger.trySend(Unit)
     }
 
+    fun updateHideBudgetExceeded(enabled: Boolean) {
+        _formState.value = _formState.value.copy(hideBudgetExceededEnabled = enabled)
+        saveTrigger.trySend(Unit)
+    }
+
     fun updateCustomProteinGrams(grams: Int) {
         _formState.value =
             _formState.value.copy(
@@ -386,6 +393,7 @@ class SettingsViewModel : ViewModel() {
                 openAiApiKey = state.openAiApiKey,
                 customModeEnabled = isManualMode,
                 hideCaloriesEnabled = state.hideCaloriesEnabled,
+                hideBudgetExceededEnabled = state.hideBudgetExceededEnabled,
                 customProteinGrams = state.customProteinGrams,
                 customFatGrams = state.customFatGrams,
                 customCarbGrams = state.customCarbGrams,
