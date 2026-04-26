@@ -20,6 +20,7 @@ data class UserSettingsEntity(
     val openAiApiKey: String = "",
     val customModeEnabled: Boolean = false,
     val hideCaloriesEnabled: Boolean = false,
+    val hideBudgetExceededEnabled: Boolean = false,
     val customProteinGrams: Int = 0,
     val customFatGrams: Int = 0,
     val customCarbGrams: Int = 0,

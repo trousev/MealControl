@@ -28,6 +28,8 @@ object DailyBudgetProvider {
 
     fun shouldHideCalories(settings: UserSettingsEntity): Boolean = settings.hideCaloriesEnabled
 
+    fun shouldHideBudgetExceeded(settings: UserSettingsEntity): Boolean = settings.hideBudgetExceededEnabled
+
     fun shouldShowProtein(
         customModeEnabled: Boolean,
         budget: DailyBudget,
