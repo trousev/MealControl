@@ -61,11 +61,15 @@ class ImageCompressionTest {
         ImageCompression.compressImage("/non/existing/path/image.jpg")
     }
 
-    private fun createTempImageFile(width: Int, height: Int, color: Int): File {
+    private fun createTempImageFile(
+        width: Int,
+        height: Int,
+        color: Int,
+    ): File {
         val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
         bitmap.eraseColor(color)
 
-        val file = File(context.cacheDir, "test_image_${width}x${height}.jpg")
+        val file = File(context.cacheDir, "test_image_${width}x$height.jpg")
         FileOutputStream(file).use { out ->
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out)
         }
