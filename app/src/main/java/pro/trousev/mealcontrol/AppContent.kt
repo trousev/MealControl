@@ -212,6 +212,7 @@ private fun AppNavHost(
                     showProtein = showProteinFlag,
                     showFat = showFatFlag,
                     showCarbs = showCarbsFlag,
+                    hideCalories = settingsState.hideCaloriesEnabled,
                     onUpdate = { description, components ->
                         if (currentExistingMeal != null) {
                             mealViewModel.updateMeal(
