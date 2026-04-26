@@ -374,7 +374,7 @@ fun SettingsScreen(
             }
         }
 
-        if (formState.calculation != null) {
+        if (formState.calculation != null && formState.workingMode != WorkingMode.MANUAL) {
             Spacer(modifier = Modifier.height(8.dp))
             ResultsCard(calculation = formState.calculation!!)
         }
