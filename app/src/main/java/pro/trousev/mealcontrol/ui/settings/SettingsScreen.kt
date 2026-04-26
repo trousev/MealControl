@@ -133,30 +133,27 @@ fun SettingsScreen(
             )
 
             OutlinedTextField(
-                value = if (formState.customProteinGrams > 0) formState.customProteinGrams.toString() else "",
+                value = formState.customProteinGrams.toString(),
                 onValueChange = { viewModel.updateCustomProteinGrams(it.toIntOrNull() ?: 0) },
                 label = { Text("Protein (g)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                isError = formState.customModeError != null,
             )
 
             OutlinedTextField(
-                value = if (formState.customFatGrams > 0) formState.customFatGrams.toString() else "",
+                value = formState.customFatGrams.toString(),
                 onValueChange = { viewModel.updateCustomFatGrams(it.toIntOrNull() ?: 0) },
                 label = { Text("Fat (g)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                isError = formState.customModeError != null,
             )
 
             OutlinedTextField(
-                value = if (formState.customCarbGrams > 0) formState.customCarbGrams.toString() else "",
+                value = formState.customCarbGrams.toString(),
                 onValueChange = { viewModel.updateCustomCarbGrams(it.toIntOrNull() ?: 0) },
                 label = { Text("Carbs (g)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                isError = formState.customModeError != null,
             )
 
             if (formState.customModeError != null) {

@@ -307,41 +307,25 @@ class SettingsViewModel : ViewModel() {
         val state = _formState.value
         if (state.workingMode != WorkingMode.MANUAL) return
 
-        val hasAtLeastOneMacro = state.customProteinGrams > 0 || state.customFatGrams > 0 || state.customCarbGrams > 0
-        val customModeError =
-            if (!hasAtLeastOneMacro &&
-                state.customProteinGrams == 0 &&
-                state.customFatGrams == 0 &&
-                state.customCarbGrams == 0
-            ) {
-                "At least one macro must be greater than 0"
-            } else {
-                null
-            }
-
-        if (hasAtLeastOneMacro) {
-            val proteinG = state.customProteinGrams
-            val fatG = state.customFatGrams
-            val carbG = state.customCarbGrams
-            val proteinCalories = proteinG * 4
-            val fatCalories = fatG * 9
-            val carbCalories = carbG * 4
-            val calories = proteinCalories + fatCalories + carbCalories
-            val calculation =
-                CalorieCalculation(
-                    bmr = 0,
-                    tdee = 0,
-                    dailyDeficit = 0,
-                    dailyCalories = calories,
-                    proteinGrams = proteinG,
-                    fatGrams = fatG,
-                    carbGrams = carbG,
-                )
-            _formState.value = state.copy(isValid = true, calculation = calculation, customModeError = null)
-            saveTrigger.trySend(Unit)
-        } else {
-            _formState.value = state.copy(isValid = false, calculation = null, customModeError = customModeError)
-        }
+        val proteinG = state.customProteinGrams
+        val fatG = state.customFatGrams
+        val carbG = state.customCarbGrams
+        val proteinCalories = proteinG * 4
+        val fatCalories = fatG * 9
+        val carbCalories = carbG * 4
+        val calories = proteinCalories + fatCalories + carbCalories
+        val calculation =
+            CalorieCalculation(
+                bmr = 0,
+                tdee = 0,
+                dailyDeficit = 0,
+                dailyCalories = calories,
+                proteinGrams = proteinG,
+                fatGrams = fatG,
+                carbGrams = carbG,
+            )
+        _formState.value = state.copy(isValid = true, calculation = calculation, customModeError = null)
+        saveTrigger.trySend(Unit)
     }
 
     private fun recalculate() {

@@ -48,6 +48,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.data.remote.MealComponentDto
+import pro.trousev.mealcontrol.viewmodel.DailyBudgetProvider
+import pro.trousev.mealcontrol.viewmodel.DayNutrientTotals
 import pro.trousev.mealcontrol.viewmodel.MealDetectionMessage
 import pro.trousev.mealcontrol.viewmodel.MealDetectionViewModel
 import java.io.File
@@ -56,6 +58,9 @@ import java.io.File
 fun MealEditScreen(
     photoUri: String,
     existingMeal: MealWithComponents? = null,
+    showProtein: Boolean = true,
+    showFat: Boolean = true,
+    showCarbs: Boolean = true,
     onUpdate: (String, List<Triple<String, Double, List<Number>>>) -> Unit,
     onDelete: () -> Unit,
     onRetake: () -> Unit,
@@ -105,6 +110,9 @@ fun MealEditScreen(
                 currentComponents = state.currentComponents,
                 currentQuestion = state.currentQuestion,
                 mealName = state.mealName,
+                showProtein = showProtein,
+                showFat = showFat,
+                showCarbs = showCarbs,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -216,6 +224,9 @@ private fun ChatContent(
     currentComponents: List<MealComponentDto>?,
     currentQuestion: String?,
     mealName: String?,
+    showProtein: Boolean = true,
+    showFat: Boolean = true,
+    showCarbs: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -254,6 +265,9 @@ private fun ChatContent(
             }
             MealComponentsList(
                 components = currentComponents,
+                showProtein = showProtein,
+                showFat = showFat,
+                showCarbs = showCarbs,
                 modifier = Modifier.padding(vertical = 8.dp),
             )
         }
@@ -318,6 +332,9 @@ private fun ChatMessageItem(
 @Composable
 private fun MealComponentsList(
     components: List<MealComponentDto>,
+    showProtein: Boolean = true,
+    showFat: Boolean = true,
+    showCarbs: Boolean = true,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -348,11 +365,26 @@ private fun MealComponentsList(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(text = "${component.weightG.toInt()}g of ${component.name}")
-                        Text(
-                            text = "${component.proteinG.toInt()}g prot, ${component.fatG.toInt()}g fat, ${component.carbsG.toInt()}g carb",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        if (showProtein || showFat || showCarbs) {
+                            Text(
+                                text =
+                                    buildString {
+                                        if (showProtein) {
+                                            append("${component.proteinG.toInt()}g prot")
+                                        }
+                                        if (showFat) {
+                                            if (isNotEmpty()) append(", ")
+                                            append("${component.fatG.toInt()}g fat")
+                                        }
+                                        if (showCarbs) {
+                                            if (isNotEmpty()) append(", ")
+                                            append("${component.carbsG.toInt()}g carb")
+                                        }
+                                    },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                     Column(horizontalAlignment = Alignment.End) {
                         Text(
@@ -384,7 +416,19 @@ private fun MealComponentsList(
                     style = MaterialTheme.typography.titleMedium,
                 )
                 Text(
-                    text = "$totalCalories kcal (P:${totalProtein}g F:${totalFat}g C:${totalCarbs}g)",
+                    text =
+                        buildString {
+                            append("$totalCalories kcal")
+                            if (showProtein) {
+                                append(" P:${totalProtein}g")
+                            }
+                            if (showFat) {
+                                append(" F:${totalFat}g")
+                            }
+                            if (showCarbs) {
+                                append(" C:${totalCarbs}g")
+                            }
+                        },
                     style = MaterialTheme.typography.titleMedium,
                 )
             }
