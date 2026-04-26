@@ -18,4 +18,9 @@ data class UserSettingsEntity(
     val customFatPercent: Int = 30,
     val customCarbPercent: Int = 30,
     val openAiApiKey: String = "",
+    val customModeEnabled: Boolean = false,
+    val hideCaloriesEnabled: Boolean = false,
+    val customProteinGrams: Int = 0,
+    val customFatGrams: Int = 0,
+    val customCarbGrams: Int = 0,
 )

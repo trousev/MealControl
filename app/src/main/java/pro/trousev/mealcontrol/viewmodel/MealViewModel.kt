@@ -10,6 +10,7 @@ import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
 import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.data.repository.MealRepository
+import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
 import java.util.Calendar
 
 data class DayNutrientTotals(
