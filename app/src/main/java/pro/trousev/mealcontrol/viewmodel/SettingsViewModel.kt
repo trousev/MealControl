@@ -433,7 +433,6 @@ class SettingsViewModel : ViewModel() {
                     ageError = null,
                     targetWeightChangeError = null,
                 )
-            saveTrigger.trySend(Unit)
         } else {
             _formState.value =
                 state.copy(
@@ -446,27 +445,21 @@ class SettingsViewModel : ViewModel() {
                     targetWeightChangeError = targetWeightChangeError,
                 )
         }
+        saveTrigger.trySend(Unit)
     }
 
     private suspend fun performSave() {
         val state = _formState.value
-        if (!state.isValid) return
-
         val isManualMode = state.workingMode == WorkingMode.MANUAL
-
-        val weight = state.weightKg.toFloatOrNull() ?: return
-        val height = state.heightCm.toFloatOrNull() ?: return
-        val age = state.age.toIntOrNull() ?: return
-        val targetChange = state.targetWeightChangeKg.toFloatOrNull() ?: return
 
         val settings =
             UserSettingsEntity(
                 id = 1,
-                weightKg = weight,
-                heightCm = height,
-                age = age,
+                weightKg = state.weightKg.toFloatOrNull() ?: 0f,
+                heightCm = state.heightCm.toFloatOrNull() ?: 0f,
+                age = state.age.toIntOrNull() ?: 0,
                 gender = state.gender.name,
-                targetWeightChangeKg = targetChange,
+                targetWeightChangeKg = state.targetWeightChangeKg.toFloatOrNull() ?: 0f,
                 activityLevel = state.activityLevel.ordinal + 1,
                 calorieDistribution = state.calorieDistribution.name,
                 customProteinPercent = state.customProteinPercent,
