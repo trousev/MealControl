@@ -151,6 +151,7 @@ fun SettingsScreen(
                 label = { Text("Protein (g)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
+                isError = formState.customModeError != null,
             )
 
             OutlinedTextField(
@@ -159,6 +160,7 @@ fun SettingsScreen(
                 label = { Text("Fat (g)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
+                isError = formState.customModeError != null,
             )
 
             OutlinedTextField(
@@ -167,6 +169,7 @@ fun SettingsScreen(
                 label = { Text("Carbs (g)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
+                isError = formState.customModeError != null,
             )
 
             if (formState.customModeError != null) {
@@ -190,8 +193,8 @@ fun SettingsScreen(
                 label = { Text("Weight (kg)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("30-300 kg") },
-                isError = formState.weightKg.isNotEmpty() && (formState.weightKg.toFloatOrNull()?.let { it < 30 || it > 300 } ?: true),
+                supportingText = { Text(formState.weightError ?: "30-300 kg") },
+                isError = formState.weightError != null,
             )
 
             OutlinedTextField(
@@ -200,8 +203,8 @@ fun SettingsScreen(
                 label = { Text("Height (cm)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("100-250 cm") },
-                isError = formState.heightCm.isNotEmpty() && (formState.heightCm.toFloatOrNull()?.let { it < 100 || it > 250 } ?: true),
+                supportingText = { Text(formState.heightError ?: "100-250 cm") },
+                isError = formState.heightError != null,
             )
 
             OutlinedTextField(
@@ -210,8 +213,8 @@ fun SettingsScreen(
                 label = { Text("Age (years)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("10-120 years") },
-                isError = formState.age.isNotEmpty() && (formState.age.toIntOrNull()?.let { it < 10 || it > 120 } ?: true),
+                supportingText = { Text(formState.ageError ?: "10-120 years") },
+                isError = formState.ageError != null,
             )
 
             Text(
@@ -262,10 +265,8 @@ fun SettingsScreen(
                 label = { Text("Weight change per week (kg)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 modifier = Modifier.fillMaxWidth(),
-                supportingText = { Text("Negative to lose, positive to gain. Range: -5 to +5") },
-                isError =
-                    formState.targetWeightChangeKg.isNotEmpty() &&
-                        (formState.targetWeightChangeKg.toFloatOrNull()?.let { it < -5 || it > 5 } ?: true),
+                supportingText = { Text(formState.targetWeightChangeError ?: "Negative to lose, positive to gain. Range: -5 to +5") },
+                isError = formState.targetWeightChangeError != null,
             )
 
             Text(
