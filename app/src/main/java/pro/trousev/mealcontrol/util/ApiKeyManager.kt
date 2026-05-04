@@ -43,7 +43,11 @@ class ApiKeyManager(
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
             )
         } catch (e: AEADBadTagException) {
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+            context
+                .getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit()
+                .clear()
+                .apply()
             File(context.filesDir.parent, "shared_prefs/$PREFS_NAME.xml").delete()
             EncryptedSharedPreferences.create(
                 context,
