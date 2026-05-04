@@ -96,7 +96,13 @@ class SettingsViewModel : ViewModel() {
             saveTrigger
                 .receiveAsFlow()
                 .debounce(300L)
-                .collect { performSave() }
+                .collect {
+                    try {
+                        performSave()
+                    } catch (e: Exception) {
+                        // Save failed but don't kill the collector
+                    }
+                }
         }
     }
 

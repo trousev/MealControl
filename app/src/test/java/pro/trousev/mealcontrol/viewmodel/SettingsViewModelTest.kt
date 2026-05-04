@@ -1,6 +1,7 @@
 package pro.trousev.mealcontrol.viewmodel
 
 import androidx.room.Room
+import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -16,6 +17,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.MealControlDatabase
+import pro.trousev.mealcontrol.data.repository.UserSettingsRepository
 import pro.trousev.mealcontrol.util.SecureStorage
 
 @RunWith(RobolectricTestRunner::class)
@@ -44,6 +46,62 @@ class SettingsViewModelTest {
     fun tearDown() {
         database.close()
         ServiceLocator.resetForTesting()
+    }
+
+    @Test
+    fun `repository saveSettings does not fail when secure storage throws`() = runTest {
+        val throwingSecureStorage =
+            object : SecureStorage {
+                var storeCallCount = 0
+                override fun storeApiKey(apiKey: String) {
+                    storeCallCount++
+                    throw RuntimeException("Keystore failure")
+                }
+
+                override fun retrieveApiKey(): String = ""
+            }
+        val repository = UserSettingsRepository(database.userSettingsDao(), throwingSecureStorage)
+        val settings = pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity(
+            id = 1,
+            weightKg = 75f,
+            heightCm = 180f,
+            age = 30,
+            gender = "MALE",
+            activityLevel = 1,
+            calorieDistribution = "HIGH_PROTEIN",
+        )
+
+        repository.saveSettings(settings)
+
+        val saved = database.userSettingsDao().getSettings()
+        assertNotNull(saved)
+        assertEquals(75f, saved!!.weightKg)
+        assertEquals(180f, saved.heightCm)
+        assertEquals(30, saved.age)
+    }
+
+    @Test
+    fun `repository getSettings returns empty key when secure storage throws`() = runTest {
+        val throwingSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {}
+
+                override fun retrieveApiKey(): String {
+                    throw RuntimeException("Keystore failure")
+                }
+            }
+        val repository = UserSettingsRepository(database.userSettingsDao(), throwingSecureStorage)
+
+        database.userSettingsDao().saveSettings(
+            pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity(
+                id = 1,
+                weightKg = 80f,
+            ),
+        )
+
+        val settings = repository.getSettings()
+        assertNotNull(settings)
+        assertEquals("", settings!!.openAiApiKey)
     }
 
     @Test

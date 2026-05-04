@@ -11,12 +11,20 @@ class UserSettingsRepository(
     suspend fun getSettings(): UserSettingsEntity? {
         val settings = userSettingsDao.getSettings() ?: return null
         return settings.copy(
-            openAiApiKey = secureStorage.retrieveApiKey(),
+            openAiApiKey = try {
+                secureStorage.retrieveApiKey()
+            } catch (e: Exception) {
+                ""
+            },
         )
     }
 
     suspend fun saveSettings(settings: UserSettingsEntity) {
-        secureStorage.storeApiKey(settings.openAiApiKey)
+        try {
+            secureStorage.storeApiKey(settings.openAiApiKey)
+        } catch (e: Exception) {
+            // API key save failure should not prevent other settings from being persisted
+        }
         val settingsWithoutApiKey = settings.copy(openAiApiKey = "")
         userSettingsDao.saveSettings(settingsWithoutApiKey)
     }
