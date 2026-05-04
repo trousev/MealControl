@@ -5,6 +5,8 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import java.io.File
+import javax.crypto.AEADBadTagException
 
 interface SecureStorage {
     fun storeApiKey(apiKey: String)
@@ -29,14 +31,28 @@ class ApiKeyManager(
                     .build(),
             ).build()
 
-    private val sharedPreferences =
-        EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-        )
+    private val sharedPreferences = createEncryptedSharedPreferences()
+
+    private fun createEncryptedSharedPreferences() =
+        try {
+            EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        } catch (e: AEADBadTagException) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply()
+            File(context.filesDir.parent, "shared_prefs/$PREFS_NAME.xml").delete()
+            EncryptedSharedPreferences.create(
+                context,
+                PREFS_NAME,
+                masterKey,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+            )
+        }
 
     override fun storeApiKey(apiKey: String) {
         sharedPreferences.edit().putString(KEY_API_KEY, apiKey).apply()
