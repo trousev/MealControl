@@ -65,10 +65,10 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun settingsViewModel_updateWeight_filtersNonNumeric() {
+    fun settingsViewModel_updateWeight_acceptsAnyInput() {
         val viewModel = SettingsViewModel()
         viewModel.updateWeight("80.5kg")
-        assertEquals("80.5", viewModel.formState.value.weightKg)
+        assertEquals("80.5kg", viewModel.formState.value.weightKg)
     }
 
     @Test
@@ -79,17 +79,17 @@ class SettingsViewModelTest {
     }
 
     @Test
-    fun settingsViewModel_updateHeight_filtersNonNumeric() {
+    fun settingsViewModel_updateHeight_acceptsAnyInput() {
         val viewModel = SettingsViewModel()
         viewModel.updateHeight("180.5cm")
-        assertEquals("180.5", viewModel.formState.value.heightCm)
+        assertEquals("180.5cm", viewModel.formState.value.heightCm)
     }
 
     @Test
-    fun settingsViewModel_updateAge_filtersNonNumeric() {
+    fun settingsViewModel_updateAge_acceptsAnyInput() {
         val viewModel = SettingsViewModel()
         viewModel.updateAge("30years")
-        assertEquals("30", viewModel.formState.value.age)
+        assertEquals("30years", viewModel.formState.value.age)
     }
 
     @Test
@@ -301,5 +301,79 @@ class SettingsViewModelTest {
         assertTrue(calc.fatGrams > 0)
         assertTrue(calc.carbGrams > 0)
         assertTrue(calc.dailyCalories > 0)
+    }
+
+    @Test
+    fun settingsViewModel_invalidInput_showsErrorButPreservesValue() {
+        val viewModel = SettingsViewModel()
+        viewModel.updateWeight("500")
+        viewModel.updateHeight("180")
+        viewModel.updateAge("30")
+
+        val state = viewModel.formState.value
+        assertEquals("500", state.weightKg)
+        assertNotNull(state.weightError)
+        assertFalse(state.isValid)
+    }
+
+    @Test
+    fun settingsViewModel_customPercent_over100_showsErrorButPreservesValue() {
+        val viewModel = SettingsViewModel()
+        viewModel.updateWeight("80")
+        viewModel.updateHeight("180")
+        viewModel.updateAge("30")
+        viewModel.updateCalorieDistribution(CalorieDistribution.CUSTOM)
+        viewModel.updateCustomProtein(200)
+        viewModel.updateCustomFat(25)
+        viewModel.updateCustomCarb(25)
+
+        val state = viewModel.formState.value
+        assertEquals(200, state.customProteinPercent)
+        assertNotNull(state.customDistributionError)
+        assertFalse(state.isValid)
+    }
+
+    @Test
+    fun settingsViewModel_customPercent_doesNotSumTo100_showsError() {
+        val viewModel = SettingsViewModel()
+        viewModel.updateWeight("80")
+        viewModel.updateHeight("180")
+        viewModel.updateAge("30")
+        viewModel.updateCalorieDistribution(CalorieDistribution.CUSTOM)
+        viewModel.updateCustomProtein(50)
+        viewModel.updateCustomFat(50)
+        viewModel.updateCustomCarb(50)
+
+        val state = viewModel.formState.value
+        assertNotNull(state.customDistributionError)
+        assertFalse(state.isValid)
+    }
+
+    @Test
+    fun settingsViewModel_manualMode_negativeGrams_showsError() {
+        val viewModel = SettingsViewModel()
+        viewModel.updateWorkingMode(WorkingMode.MANUAL)
+        viewModel.updateCustomProteinGrams(-10)
+        viewModel.updateCustomFatGrams(100)
+        viewModel.updateCustomCarbGrams(100)
+
+        val state = viewModel.formState.value
+        assertEquals(-10, state.customProteinGrams)
+        assertNotNull(state.customModeError)
+        assertFalse(state.isValid)
+    }
+
+    @Test
+    fun settingsViewModel_targetWeightChange_outOfRange_showsError() {
+        val viewModel = SettingsViewModel()
+        viewModel.updateWeight("80")
+        viewModel.updateHeight("180")
+        viewModel.updateAge("30")
+        viewModel.updateTargetWeightChange("-10")
+
+        val state = viewModel.formState.value
+        assertEquals("-10", state.targetWeightChangeKg)
+        assertNotNull(state.targetWeightChangeError)
+        assertFalse(state.isValid)
     }
 }

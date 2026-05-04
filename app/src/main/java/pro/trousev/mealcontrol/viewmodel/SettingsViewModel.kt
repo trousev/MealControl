@@ -77,6 +77,10 @@ data class SettingsFormState(
     val calculation: CalorieCalculation? = null,
     val customDistributionError: String? = null,
     val customModeError: String? = null,
+    val weightError: String? = null,
+    val heightError: String? = null,
+    val ageError: String? = null,
+    val targetWeightChangeError: String? = null,
 )
 
 class SettingsViewModel : ViewModel() {
@@ -175,20 +179,17 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateWeight(weight: String) {
-        val filtered = weight.filter { it.isDigit() || it == '.' }
-        _formState.value = _formState.value.copy(weightKg = filtered)
+        _formState.value = _formState.value.copy(weightKg = weight)
         recalculate()
     }
 
     fun updateHeight(height: String) {
-        val filtered = height.filter { it.isDigit() || it == '.' }
-        _formState.value = _formState.value.copy(heightCm = filtered)
+        _formState.value = _formState.value.copy(heightCm = height)
         recalculate()
     }
 
     fun updateAge(age: String) {
-        val filtered = age.filter { it.isDigit() }
-        _formState.value = _formState.value.copy(age = filtered)
+        _formState.value = _formState.value.copy(age = age)
         recalculate()
     }
 
@@ -198,13 +199,12 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateTargetWeightChange(change: String) {
-        val filtered = change.filter { it.isDigit() || it == '.' || it == '-' }
-        _formState.value = _formState.value.copy(targetWeightChangeKg = filtered)
+        _formState.value = _formState.value.copy(targetWeightChangeKg = change)
 
-        val targetChange = filtered.toFloatOrNull() ?: 0f
+        val targetChange = change.toFloatOrNull()
         val currentDistribution = _formState.value.calorieDistribution
         val newDistribution =
-            if (currentDistribution != CalorieDistribution.CUSTOM) {
+            if (currentDistribution != CalorieDistribution.CUSTOM && targetChange != null) {
                 if (targetChange < 0) CalorieDistribution.HIGH_PROTEIN else CalorieDistribution.BALANCED
             } else {
                 currentDistribution
@@ -225,17 +225,17 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun updateCustomProtein(percent: Int) {
-        _formState.value = _formState.value.copy(customProteinPercent = percent.coerceIn(0, 100))
+        _formState.value = _formState.value.copy(customProteinPercent = percent)
         recalculate()
     }
 
     fun updateCustomFat(percent: Int) {
-        _formState.value = _formState.value.copy(customFatPercent = percent.coerceIn(0, 100))
+        _formState.value = _formState.value.copy(customFatPercent = percent)
         recalculate()
     }
 
     fun updateCustomCarb(percent: Int) {
-        _formState.value = _formState.value.copy(customCarbPercent = percent.coerceIn(0, 100))
+        _formState.value = _formState.value.copy(customCarbPercent = percent)
         recalculate()
     }
 
@@ -286,7 +286,7 @@ class SettingsViewModel : ViewModel() {
     fun updateCustomProteinGrams(grams: Int) {
         _formState.value =
             _formState.value.copy(
-                customProteinGrams = grams.coerceIn(0, 1000),
+                customProteinGrams = grams,
                 customModeError = null,
             )
         recalculateManualMode()
@@ -295,7 +295,7 @@ class SettingsViewModel : ViewModel() {
     fun updateCustomFatGrams(grams: Int) {
         _formState.value =
             _formState.value.copy(
-                customFatGrams = grams.coerceIn(0, 1000),
+                customFatGrams = grams,
                 customModeError = null,
             )
         recalculateManualMode()
@@ -304,7 +304,7 @@ class SettingsViewModel : ViewModel() {
     fun updateCustomCarbGrams(grams: Int) {
         _formState.value =
             _formState.value.copy(
-                customCarbGrams = grams.coerceIn(0, 1000),
+                customCarbGrams = grams,
                 customModeError = null,
             )
         recalculateManualMode()
@@ -317,6 +317,17 @@ class SettingsViewModel : ViewModel() {
         val proteinG = state.customProteinGrams
         val fatG = state.customFatGrams
         val carbG = state.customCarbGrams
+
+        if (proteinG < 0 || fatG < 0 || carbG < 0) {
+            _formState.value =
+                state.copy(
+                    isValid = false,
+                    calculation = null,
+                    customModeError = "Values cannot be negative",
+                )
+            return
+        }
+
         val proteinCalories = proteinG * 4
         val fatCalories = fatG * 9
         val carbCalories = carbG * 4
@@ -337,54 +348,125 @@ class SettingsViewModel : ViewModel() {
 
     private fun recalculate() {
         val state = _formState.value
-        val weight = state.weightKg.toFloatOrNull() ?: 0f
-        val height = state.heightCm.toFloatOrNull() ?: 0f
-        val age = state.age.toIntOrNull() ?: 0
-        val targetChange = state.targetWeightChangeKg.toFloatOrNull() ?: 0f
 
-        val customSum = state.customProteinPercent + state.customFatPercent + state.customCarbPercent
-        val customError =
-            if (state.calorieDistribution == CalorieDistribution.CUSTOM && customSum != 100) {
-                "Must equal 100% (currently $customSum%)"
+        val weight = state.weightKg.toFloatOrNull()
+        val height = state.heightCm.toFloatOrNull()
+        val age = state.age.toIntOrNull()
+        val targetChange = state.targetWeightChangeKg.toFloatOrNull()
+
+        val weightError =
+            when {
+                state.weightKg.isEmpty() -> null
+                weight == null -> "Must be a valid number"
+                weight < 30f -> "Must be at least 30 kg"
+                weight > 300f -> "Must be at most 300 kg"
+                else -> null
+            }
+
+        val heightError =
+            when {
+                state.heightCm.isEmpty() -> null
+                height == null -> "Must be a valid number"
+                height < 100f -> "Must be at least 100 cm"
+                height > 250f -> "Must be at most 250 cm"
+                else -> null
+            }
+
+        val ageError =
+            when {
+                state.age.isEmpty() -> null
+                age == null -> "Must be a valid number"
+                age < 10 -> "Must be at least 10 years"
+                age > 120 -> "Must be at most 120 years"
+                else -> null
+            }
+
+        val targetWeightChangeError =
+            when {
+                state.targetWeightChangeKg.isEmpty() -> null
+                targetChange == null -> "Must be a valid number"
+                targetChange < -5f -> "Must be at least -5 kg"
+                targetChange > 5f -> "Must be at most 5 kg"
+                else -> null
+            }
+
+        val proteinPercent = state.customProteinPercent
+        val fatPercent = state.customFatPercent
+        val carbPercent = state.customCarbPercent
+
+        val customPercentError =
+            if (state.calorieDistribution == CalorieDistribution.CUSTOM) {
+                when {
+                    proteinPercent < 0 || fatPercent < 0 || carbPercent < 0 -> "Values cannot be negative"
+                    proteinPercent > 100 || fatPercent > 100 || carbPercent > 100 -> "Values cannot exceed 100"
+                    proteinPercent + fatPercent + carbPercent != 100 -> "Must equal 100% (currently ${proteinPercent + fatPercent + carbPercent}%)"
+                    else -> null
+                }
             } else {
                 null
             }
 
-        val isValid = weight in 30f..300f && height in 100f..250f && age in 10..120 && customError == null
+        val hasFieldErrors = weightError != null || heightError != null || ageError != null || targetWeightChangeError != null || customPercentError != null
+        val hasRequiredValues = weight != null && height != null && age != null
 
-        if (isValid) {
+        if (!hasFieldErrors && hasRequiredValues) {
             val calculation =
                 calculateCalories(
                     weightKg = weight,
                     heightCm = height,
                     age = age,
                     gender = state.gender,
-                    targetWeightChangeKg = targetChange,
+                    targetWeightChangeKg = targetChange ?: 0f,
                     activityLevel = state.activityLevel,
                     distribution = state.calorieDistribution,
-                    customProtein = state.customProteinPercent,
-                    customFat = state.customFatPercent,
-                    customCarb = state.customCarbPercent,
+                    customProtein = proteinPercent,
+                    customFat = fatPercent,
+                    customCarb = carbPercent,
                 )
-            _formState.value = state.copy(isValid = true, calculation = calculation, customDistributionError = null)
+            _formState.value =
+                state.copy(
+                    isValid = true,
+                    calculation = calculation,
+                    customDistributionError = null,
+                    weightError = null,
+                    heightError = null,
+                    ageError = null,
+                    targetWeightChangeError = null,
+                )
             saveTrigger.trySend(Unit)
         } else {
-            _formState.value = state.copy(isValid = false, calculation = null, customDistributionError = customError)
+            _formState.value =
+                state.copy(
+                    isValid = false,
+                    calculation = null,
+                    customDistributionError = customPercentError,
+                    weightError = weightError,
+                    heightError = heightError,
+                    ageError = ageError,
+                    targetWeightChangeError = targetWeightChangeError,
+                )
         }
     }
 
     private suspend fun performSave() {
         val state = _formState.value
+        if (!state.isValid) return
+
         val isManualMode = state.workingMode == WorkingMode.MANUAL
+
+        val weight = state.weightKg.toFloatOrNull() ?: return
+        val height = state.heightCm.toFloatOrNull() ?: return
+        val age = state.age.toIntOrNull() ?: return
+        val targetChange = state.targetWeightChangeKg.toFloatOrNull() ?: return
 
         val settings =
             UserSettingsEntity(
                 id = 1,
-                weightKg = state.weightKg.toFloatOrNull() ?: 0f,
-                heightCm = state.heightCm.toFloatOrNull() ?: 0f,
-                age = state.age.toIntOrNull() ?: 0,
+                weightKg = weight,
+                heightCm = height,
+                age = age,
                 gender = state.gender.name,
-                targetWeightChangeKg = state.targetWeightChangeKg.toFloatOrNull() ?: 0f,
+                targetWeightChangeKg = targetChange,
                 activityLevel = state.activityLevel.ordinal + 1,
                 calorieDistribution = state.calorieDistribution.name,
                 customProteinPercent = state.customProteinPercent,
