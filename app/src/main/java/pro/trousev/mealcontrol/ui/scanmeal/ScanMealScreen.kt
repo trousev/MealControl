@@ -12,7 +12,6 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -36,9 +35,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import java.io.File
+import java.io.FileOutputStream
+import java.io.InputStream
 import java.util.concurrent.Executor
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -65,6 +67,16 @@ fun ScanMealScreen(
             ActivityResultContracts.RequestPermission(),
         ) { isGranted ->
             hasCameraPermission = isGranted
+        }
+
+    val galleryLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.GetContent(),
+        ) { uri ->
+            uri?.let {
+                val savedPath = copyGalleryImageToAppStorage(context, it)
+                onPhotoCaptured(savedPath)
+            }
         }
 
     LaunchedEffect(Unit) {
@@ -162,6 +174,21 @@ fun ScanMealScreen(
                             modifier = Modifier.size(36.dp),
                         )
                     }
+
+                    FloatingActionButton(
+                        onClick = {
+                            galleryLauncher.launch("image/*")
+                        },
+                        shape = CircleShape,
+                        containerColor = MaterialTheme.colorScheme.secondary,
+                        modifier =
+                            Modifier
+                                .align(Alignment.BottomEnd)
+                                .padding(end = 48.dp, bottom = 8.dp)
+                                .size(56.dp),
+                    ) {
+                        Text("🖼", fontSize = 20.sp)
+                    }
                 }
             } else {
                 Box(
@@ -184,3 +211,17 @@ private suspend fun Context.getCameraProvider(): ProcessCameraProvider =
             )
         }
     }
+
+private fun copyGalleryImageToAppStorage(
+    context: Context,
+    uri: Uri,
+): String {
+    val destDir = File(context.filesDir, "meal_photos").apply { mkdirs() }
+    val destFile = File(destDir, "gallery_${System.currentTimeMillis()}.jpg")
+    context.contentResolver.openInputStream(uri)?.use { inputStream ->
+        FileOutputStream(destFile).use { outputStream ->
+            inputStream.copyTo(outputStream)
+        }
+    }
+    return destFile.absolutePath
+}
