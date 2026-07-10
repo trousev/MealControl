@@ -1,0 +1,70 @@
+name: Debug APK
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches:
+      - '**'  # All branches for manual testing
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug-apk:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml', 'gradle.lockfile') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          build-cache: true
+
+      - name: Configure Gradle
+        run: |
+          mkdir -p ~/.gradle
+          echo "org.gradle.caching=true" >> ~/.gradle/gradle.properties
+          echo "org.gradle.parallel=true" >> ~/.gradle/gradle.properties
+
+      - name: Build devDebug APK
+        run: ./gradlew assembleDevDebug
+
+      - name: Upload devDebug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: mealcontrol-dev-debug
+          path: app/build/outputs/apk/dev/debug/app-dev-debug.apk
+          retention-days: 5
+          if-no-files-found: error
+
+      - name: Upload devDebug APK (alternative path)
+        uses: actions/upload-artifact@v4
+        with:
+          name: mealcontrol-dev-debug-unsigned
+          path: app/build/outputs/apk/dev/debug/
+          retention-days: 5
+          if-no-files-found: error
