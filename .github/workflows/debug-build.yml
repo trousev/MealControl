@@ -3,9 +3,7 @@ name: Debug APK
 on:
   pull_request:
     branches: [master]
-  push:
-    branches:
-      - '**'  # All branches for manual testing
+    types: [opened, synchronize, reopened]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
