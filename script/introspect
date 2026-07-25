@@ -706,6 +706,47 @@ def wait_text(text: str, timeout: int = 30) -> None:
     die(f"Text '{text}' did not appear within {timeout}s")
 
 
+def has_text(text: str) -> bool:
+    """Check if text is currently on screen. Exit 0 if found, 1 if not."""
+    ensure_device()
+    try:
+        adb_shell(f"uiautomator dump {DEFAULT_UI_DUMP_DEVICE}", timeout=10)
+    except Exception:
+        print("false")
+        return False
+
+    local_path = Path("/tmp/introspect_ui.xml")
+    try:
+        adb(["pull", DEFAULT_UI_DUMP_DEVICE, str(local_path)], timeout=10)
+    except Exception:
+        print("false")
+        return False
+
+    if local_path.exists():
+        content = local_path.read_text(errors="ignore")
+        local_path.unlink(missing_ok=True)
+        if text in content:
+            print("true")
+            return True
+
+    print("false")
+    return False
+
+
+def current_activity() -> None:
+    """Print the current focused activity name."""
+    ensure_device()
+    try:
+        result = adb_shell("dumpsys activity activities | grep mFocusedActivity", timeout=5)
+        print(result.stdout.strip())
+    except Exception:
+        try:
+            result = adb_shell("dumpsys window | grep mCurrentFocus", timeout=5)
+            print(result.stdout.strip())
+        except Exception:
+            die("Could not determine current activity")
+
+
 # ── Utils ───────────────────────────────────────────────────────────────────
 
 def _yesno(val: bool) -> str:
@@ -821,6 +862,14 @@ Examples:
     p.add_argument("text", help="Text to wait for")
     p.add_argument("timeout", nargs="?", type=int, default=30, help="Timeout in seconds")
 
+    # has-text
+    p = sub.add_parser("has-text", help="Check if text is on screen (exit 0=yes, 1=no)")
+    p.add_argument("text", help="Text to check for")
+
+    # current-activity
+    sub.add_parser("current-activity", help="Print current activity name",
+                   aliases=["activity", "curr"])
+
     return parser
 
 
@@ -846,6 +895,7 @@ def main() -> None:
         "logs": "logcat", "log": "logcat",
         "boot": "wait-boot",
         "wait": "wait-text",
+        "activity": "current-activity", "curr": "current-activity",
         "long-press": "longpress", "lp": "longpress",
     }
     cmd = alias_map.get(cmd, cmd)
@@ -892,6 +942,11 @@ def main() -> None:
             emulator_wait_boot(args.timeout)
         elif cmd == "wait-text":
             wait_text(args.text, args.timeout)
+        elif cmd == "has-text":
+            found = has_text(args.text)
+            sys.exit(0 if found else 1)
+        elif cmd == "current-activity":
+            current_activity()
         else:
             parser.print_help()
             sys.exit(1)
