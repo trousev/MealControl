@@ -21,6 +21,7 @@ If the `.env` file is missing or does not contain valid paths, inform the user t
 | `./script/test [TestClass]` | Run unit tests (optional: specify fully-qualified class name) |
 | `./script/lint [--all]` | Run Android Lint, ktlint, and detekt (default: debug variant) |
 | `./script/update` | Check/update dependencies |
+| `./script/introspect <cmd>` | AI-driven Android testing harness (see below) |
 
 ### Script Details
 
@@ -52,6 +53,81 @@ If the `.env` file is missing or does not contain valid paths, inform the user t
 ```bash
 ./script/update         # Check dependency tree
 ```
+
+#### Introspect — AI-Driven Testing Harness
+
+The `introspect` script provides a complete CLI for AI agents (Claude/Happy) to interact with the Android emulator programmatically. It wraps `adb` and the Android emulator to enable:
+
+- **Emulator lifecycle**: start, stop, status
+- **App management**: build+install, launch, force-stop, clear data
+- **UI interaction**: tap, long-press, type, swipe, key press
+- **Screenshots**: capture the screen for AI to read visually
+- **UI hierarchy**: dump the UI tree as structured JSON
+- **Element search**: find elements by text and get tap coordinates
+- **Log access**: filtered logcat output
+
+**AI Testing Workflow:**
+```bash
+# 1. Ensure emulator is running
+./script/introspect emulator start
+
+# 2. Build and install the app
+./script/introspect install
+
+# 3. Launch the app
+./script/introspect launch
+
+# 4. See what's on screen (AI reads the saved PNG)
+./script/introspect screenshot
+
+# 5. Understand the UI structure
+./script/introspect ui --json     # Full hierarchy as JSON
+./script/introspect ui --text     # Human-readable tree
+
+# 6. Find an element and tap it
+./script/introspect find "Settings"        # Search by text
+./script/introspect find "Settings" --json # JSON with coordinates
+./script/introspect tap 907 2274           # Tap at coordinates
+
+# 7. Interact with the app
+./script/introspect type "Hello world"     # Type text
+./script/introspect swipe 500 1500 500 500 # Swipe gesture
+./script/introspect press back             # Press system keys
+
+# 8. Check what happened
+./script/introspect screenshot             # See the result
+./script/introspect logcat --lines 20      # Check logs
+```
+
+**Full Command Reference:**
+
+| Command | Aliases | Description |
+|---------|---------|-------------|
+| `emulator start [avd]` | `emu` | Start emulator, wait for boot |
+| `emulator stop` | `emu-stop`, `stop-emu` | Stop/kill the emulator |
+| `emulator status` | `status`, `emu-status` | Show device and AVD status |
+| `install [--release]` | — | Build APK and install on device |
+| `launch [--release]` | — | Launch the MealControl app |
+| `stop-app` | `stop` | Force-stop the app |
+| `clear-app-data` | `clear-data`, `clear` | Clear app data |
+| `screenshot [path]` | `shot`, `ss` | Capture screenshot (default: /tmp/mealcontrol-screenshot.png) |
+| `ui [--json\|--text] [--flat]` | — | Dump UI hierarchy |
+| `find <text>` | — | Find UI elements containing text |
+| `tap <x> <y>` | — | Tap at screen coordinates |
+| `longpress <x> <y> [ms]` | `lp` | Long-press at coordinates |
+| `type <text>` | — | Type text into focused field |
+| `swipe <x1> <y1> <x2> <y2> [ms]` | — | Swipe gesture |
+| `press <key>` | — | Press key (back, home, enter, etc.) |
+| `logcat [--filter] [--lines] [--clear]` | `logs`, `log` | Dump/clear logcat |
+| `wait-boot [timeout]` | `boot` | Wait for device to finish booting |
+| `wait-text <text> [timeout]` | `wait` | Wait until text appears on screen |
+
+**Important notes for AI agents:**
+- All status/progress messages go to **stderr**. Data (JSON, logcat) goes to **stdout**.
+- Pipe `ui --json` and `find --json` output to `python3 -c` for advanced filtering.
+- Screenshots are saved as PNG files — use the Read tool to view them.
+- For Compose apps: the UI tree may show generic `android.view.View` nodes instead of native widgets, but coordinates from `find` are always accurate for taps.
+- The emulator uses `-no-window -no-audio -no-boot-anim` flags for headless operation.
 
 ## Code Style Guidelines
 
