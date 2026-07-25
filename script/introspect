@@ -1,0 +1,904 @@
+#!/usr/bin/env python3
+"""
+introspect — AI-friendly Android app testing harness for MealControl.
+
+Provides a clean CLI for Claude/Happy to:
+  - Manage the emulator (start, stop, status)
+  - Build and install the app
+  - Interact with the UI (tap, type, swipe, press keys)
+  - Take screenshots for visual feedback
+  - Dump the UI hierarchy as structured JSON
+  - Search for UI elements by text
+  - Access filtered logcat output
+
+All commands return structured, parseable output. Screenshots are saved to
+disk so the AI can read them with the Read tool.
+
+Usage:
+  ./script/introspect <command> [args...]
+
+Commands:
+  emulator start   [avd]     Start the emulator and wait for boot
+  emulator stop              Stop the running emulator
+  emulator status            Show emulator and device connection status
+
+  install          [variant] Build and install the APK on the device
+  launch                     Launch the MealControl app
+  stop-app                   Force-stop the MealControl app
+  clear-app-data             Clear MealControl app data
+
+  screenshot       [path]    Capture a screenshot and save to path
+  ui               [--json]  Dump UI hierarchy (--json for machine-readable)
+  find             <text>    Find UI elements containing text, return coords
+
+  tap              <x> <y>   Tap at screen coordinates
+  longpress        <x> <y>   Long-press at coordinates
+  type             <text>    Type text into the focused field
+  swipe            <x1> <y1> <x2> <y2> [ms]  Swipe gesture
+  press            <key>     Press a key (back, home, enter, delete, etc.)
+
+  logcat           [opts]    Dump recent logcat (--filter <pat> --lines <n> --clear)
+  wait-boot        [sec]     Wait for device to finish booting
+  wait-text        <text>    Wait until text appears on screen
+"""
+
+import argparse
+import json
+import os
+import subprocess
+import sys
+import time
+import xml.etree.ElementTree as ET
+from pathlib import Path
+from typing import Optional
+
+# ── Project constants ───────────────────────────────────────────────────────
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+ENV_FILE = PROJECT_ROOT / ".env"
+APP_ID_DEBUG = "pro.trousev.mealcontrol.debug"
+APP_ID_PROD = "pro.trousev.mealcontrol"
+ACTIVITY_DEBUG = f"{APP_ID_DEBUG}/.DebugMainActivity"
+ACTIVITY_PROD = f"{APP_ID_PROD}/.MainActivity"
+APK_PATH_DEBUG = "app/build/outputs/apk/dev/debug/app-dev-debug.apk"
+APK_PATH_RELEASE = "app/build/outputs/apk/prod/release/app-prod-release.apk"
+DEFAULT_SCREENSHOT_PATH = "/tmp/mealcontrol-screenshot.png"
+DEFAULT_UI_DUMP_DEVICE = "/sdcard/introspect_ui.xml"
+DEFAULT_AVD = "Medium_Phone_API_36.1"
+
+# ANSI colors for human-readable output
+BOLD = "\033[1m"
+GREEN = "\033[32m"
+YELLOW = "\033[33m"
+RED = "\033[31m"
+CYAN = "\033[36m"
+RESET = "\033[0m"
+
+
+# ── Helpers ─────────────────────────────────────────────────────────────────
+
+# Cached env after first load
+_env_cache: Optional[dict] = None
+
+
+def load_env() -> dict:
+    """Load key=value pairs from .env file, expanding shell variables."""
+    env = {}
+    if ENV_FILE.exists():
+        for line in ENV_FILE.read_text().splitlines():
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, _, value = line.partition("=")
+                key = key.strip()
+                value = value.strip()
+                # Expand $HOME and other env vars in the value
+                value = os.path.expandvars(value)
+                env[key] = value
+    return env
+
+
+def get_process_env() -> dict:
+    """Return a copy of os.environ augmented with ANDROID_HOME/JAVA_HOME from .env."""
+    global _env_cache
+    if _env_cache is not None:
+        return _env_cache.copy()
+
+    env_vars = load_env()
+    proc_env = os.environ.copy()
+    for key in ("ANDROID_HOME", "JAVA_HOME"):
+        if key in env_vars and env_vars[key]:
+            proc_env[key] = env_vars[key]
+    _env_cache = proc_env.copy()
+    return proc_env
+
+
+def get_adb() -> str:
+    """Return path to adb binary."""
+    proc_env = get_process_env()
+    android_home = proc_env.get("ANDROID_HOME", "")
+    adb = os.path.join(android_home, "platform-tools", "adb") if android_home else "adb"
+    return adb
+
+
+def get_emulator_bin() -> str:
+    """Return path to emulator binary."""
+    proc_env = get_process_env()
+    android_home = proc_env.get("ANDROID_HOME", "")
+    emu = os.path.join(android_home, "emulator", "emulator") if android_home else "emulator"
+    return emu
+
+
+def adb(args: list, timeout: int = 30, check: bool = True) -> subprocess.CompletedProcess:
+    """Run an adb command."""
+    cmd = [get_adb()] + args
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                          check=check, env=get_process_env())
+
+
+def adb_shell(cmd: str, timeout: int = 30) -> subprocess.CompletedProcess:
+    """Run an adb shell command."""
+    return adb(["shell", cmd], timeout=timeout)
+
+
+def is_device_connected() -> bool:
+    """Check if any device is connected."""
+    try:
+        result = adb(["devices"], timeout=5)
+        lines = result.stdout.strip().splitlines()
+        # First line is "List of devices attached", subsequent lines are devices
+        for line in lines[1:]:
+            if line.strip() and "device" in line:
+                return True
+        return False
+    except Exception:
+        return False
+
+
+def is_booted() -> bool:
+    """Check if the connected device has completed booting."""
+    try:
+        result = adb_shell("getprop sys.boot_completed", timeout=5)
+        return result.stdout.strip() == "1"
+    except Exception:
+        return False
+
+
+def ensure_device() -> None:
+    """Ensure a device is connected and booted, or die with a clear message."""
+    if not is_device_connected():
+        die("No device connected. Run: ./script/introspect emulator start")
+    if not is_booted():
+        die("Device is not fully booted. Run: ./script/introspect wait-boot")
+
+
+def die(msg: str, code: int = 1) -> None:
+    """Print error and exit."""
+    print(f"{RED}ERROR:{RESET} {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+def info(msg: str) -> None:
+    """Print informational message to stderr."""
+    print(f"{CYAN}→{RESET} {msg}", file=sys.stderr)
+
+
+def success(msg: str) -> None:
+    """Print success message to stderr."""
+    print(f"{GREEN}✓{RESET} {msg}", file=sys.stderr)
+
+
+def warn(msg: str) -> None:
+    """Print warning to stderr."""
+    print(f"{YELLOW}⚠{RESET} {msg}", file=sys.stderr)
+
+
+def run_checked(cmd: list, description: str, timeout: int = 120) -> None:
+    """Run a command, print progress, die on failure."""
+    info(description)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout,
+                            cwd=PROJECT_ROOT, env=get_process_env())
+    if result.returncode != 0:
+        print(result.stderr, file=sys.stderr)
+        die(f"{description} failed (exit {result.returncode})")
+    success(f"{description} complete")
+
+
+# ── Emulator commands ───────────────────────────────────────────────────────
+
+def emulator_start(avd_name: str = DEFAULT_AVD) -> None:
+    """Start the emulator and wait for it to boot."""
+    if is_device_connected() and is_booted():
+        success("Device already connected and booted")
+        return
+
+    emu = get_emulator_bin()
+    proc_env = get_process_env()
+
+    # Check if emulator process is already running for this AVD
+    ps_result = subprocess.run(["pgrep", "-f", f"emulator.*{avd_name}"], capture_output=True, text=True)
+    if ps_result.returncode == 0:
+        info("Emulator process already running, waiting for boot...")
+    else:
+        info(f"Starting emulator: {avd_name}")
+        # Start emulator in background, detached
+        subprocess.Popen(
+            [emu, "-avd", avd_name, "-no-window", "-no-audio", "-no-boot-anim"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+            cwd=PROJECT_ROOT,
+            env=proc_env,
+        )
+        info("Emulator process started (PID backgrounded)")
+
+    # Wait for device to appear and boot
+    emulator_wait_boot(timeout=180)
+
+
+def emulator_stop() -> None:
+    """Stop all running emulators."""
+    try:
+        adb(["emu", "kill"], timeout=5)
+        success("Emulator stopped")
+    except Exception:
+        # Fallback: kill emulator processes
+        subprocess.run(["pkill", "-f", "emulator"], capture_output=True)
+        success("Emulator processes killed")
+
+
+def emulator_status() -> None:
+    """Print emulator and device status."""
+    emu = get_emulator_bin()
+    proc_env = get_process_env()
+    try:
+        avds = subprocess.run([emu, "-list-avds"], capture_output=True, text=True, timeout=5,
+                              env=proc_env)
+        avd_list = [a for a in avds.stdout.strip().splitlines() if a.strip()]
+    except Exception:
+        avd_list = []
+
+    print(f"{'AVDs available:':<24} {len(avd_list)}")
+    for a in avd_list:
+        print(f"  - {a}")
+
+    print(f"{'Device connected:':<24} {_yesno(is_device_connected())}")
+    print(f"{'Device booted:':<24} {_yesno(is_booted())}")
+
+    if is_device_connected():
+        try:
+            result = adb(["shell", "getprop", "ro.build.version.sdk"], timeout=5)
+            sdk = result.stdout.strip()
+            result2 = adb(["shell", "getprop", "ro.product.model"], timeout=5)
+            model = result2.stdout.strip()
+            print(f"{'Device model:':<24} {model} (SDK {sdk})")
+        except Exception:
+            pass
+
+    # Check if app is installed
+    if is_device_connected() and is_booted():
+        try:
+            r = adb(["shell", "pm", "list", "packages", "pro.trousev.mealcontrol"], timeout=5)
+            if "mealcontrol" in r.stdout:
+                print(f"{'App installed:':<24} yes")
+            else:
+                print(f"{'App installed:':<24} no")
+        except Exception:
+            pass
+
+
+def emulator_wait_boot(timeout: int = 120) -> None:
+    """Wait for the device to finish booting."""
+    info(f"Waiting for device to boot (timeout: {timeout}s)...")
+    deadline = time.time() + timeout
+    device_seen = False
+
+    while time.time() < deadline:
+        if is_device_connected():
+            if not device_seen:
+                info("Device detected, waiting for boot to complete...")
+                device_seen = True
+            if is_booted():
+                # Also wait for package manager to be ready
+                try:
+                    adb_shell("pm list packages", timeout=10)
+                    success("Device is ready")
+                    return
+                except Exception:
+                    pass
+        time.sleep(3)
+
+    die(f"Device did not boot within {timeout}s")
+
+
+# ── App commands ────────────────────────────────────────────────────────────
+
+def app_install(variant: str = "debug") -> None:
+    """Build and install the APK."""
+    ensure_device()
+
+    # Build
+    if variant == "debug":
+        run_checked(["./gradlew", "assembleDevDebug"], "Building debug APK", timeout=300)
+        apk_path = APK_PATH_DEBUG
+        activity = ACTIVITY_DEBUG
+    else:
+        run_checked(["./gradlew", "assembleProdRelease"], "Building release APK", timeout=300)
+        apk_path = APK_PATH_RELEASE
+        activity = ACTIVITY_PROD
+
+    # Install
+    full_apk_path = PROJECT_ROOT / apk_path
+    if not full_apk_path.exists():
+        die(f"APK not found at {full_apk_path}")
+
+    run_checked([get_adb(), "install", "-r", str(full_apk_path)], "Installing APK")
+    success(f"App installed: {activity}")
+
+
+def app_launch(variant: str = "debug") -> None:
+    """Launch the MealControl app."""
+    ensure_device()
+
+    if variant == "debug":
+        activity = ACTIVITY_DEBUG
+    else:
+        activity = ACTIVITY_PROD
+
+    info(f"Launching {activity}...")
+    adb_shell(f"am start -n {activity}")
+    success("App launched")
+
+
+def app_stop() -> None:
+    """Force-stop the MealControl app."""
+    ensure_device()
+    # Try both package names
+    for pkg in [APP_ID_DEBUG, APP_ID_PROD]:
+        try:
+            adb_shell(f"am force-stop {pkg}", timeout=5)
+        except Exception:
+            pass
+    success("App force-stopped")
+
+
+def app_clear_data() -> None:
+    """Clear MealControl app data."""
+    ensure_device()
+    for pkg in [APP_ID_DEBUG, APP_ID_PROD]:
+        try:
+            adb_shell(f"pm clear {pkg}", timeout=10)
+        except Exception:
+            pass
+    success("App data cleared")
+
+
+# ── Screenshot ──────────────────────────────────────────────────────────────
+
+def screenshot(path: str = DEFAULT_SCREENSHOT_PATH) -> None:
+    """Capture a screenshot and save to the given path."""
+    ensure_device()
+
+    output_path = Path(path)
+    if not output_path.is_absolute():
+        output_path = Path.cwd() / output_path
+
+    info(f"Capturing screenshot to {output_path}")
+    with open(output_path, "wb") as f:
+        result = subprocess.run(
+            [get_adb(), "exec-out", "screencap", "-p"],
+            capture_output=True,
+            timeout=15,
+        )
+        f.write(result.stdout)
+
+    file_size = output_path.stat().st_size
+    success(f"Screenshot saved ({file_size:,} bytes) → {output_path}")
+
+
+# ── UI hierarchy ────────────────────────────────────────────────────────────
+
+def _parse_ui_node(node: ET.Element) -> dict:
+    """Recursively parse a UI hierarchy node into a clean dict."""
+    bounds_str = node.attrib.get("bounds", "[0,0][0,0]")
+    # Parse bounds like "[0,100][200,200]"
+    try:
+        parts = bounds_str.replace("[", "").replace("]", ",").split(",")
+        x1, y1, x2, y2 = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])
+    except (ValueError, IndexError):
+        x1, y1, x2, y2 = 0, 0, 0, 0
+
+    result = {
+        "text": node.attrib.get("text", ""),
+        "contentDesc": node.attrib.get("content-desc", ""),
+        "resourceId": node.attrib.get("resource-id", ""),
+        "class": node.attrib.get("class", ""),
+        "clickable": node.attrib.get("clickable", "") == "true",
+        "enabled": node.attrib.get("enabled", "") == "true",
+        "scrollable": node.attrib.get("scrollable", "") == "true",
+        "checkable": node.attrib.get("checkable", "") == "true",
+        "checked": node.attrib.get("checked", "") == "true",
+        "focusable": node.attrib.get("focusable", "") == "true",
+        "focused": node.attrib.get("focused", "") == "true",
+        "longClickable": node.attrib.get("long-clickable", "") == "true",
+        "selected": node.attrib.get("selected", "") == "true",
+        "bounds": {
+            "x": x1,
+            "y": y1,
+            "width": x2 - x1,
+            "height": y2 - y1,
+        },
+        "center": {
+            "x": (x1 + x2) // 2,
+            "y": (y1 + y2) // 2,
+        },
+    }
+
+    children = []
+    for child in node:
+        children.append(_parse_ui_node(child))
+    if children:
+        result["children"] = children
+
+    return result
+
+
+def _flatten_tree(node: dict, depth: int = 0) -> list:
+    """Flatten the UI tree into a list of (depth, node) for easier searching."""
+    result = [(depth, node)]
+    for child in node.get("children", []):
+        result.extend(_flatten_tree(child, depth + 1))
+    return result
+
+
+def ui_dump(json_output: bool = True, flat: bool = False) -> dict:
+    """Dump the UI hierarchy. Returns the parsed structure."""
+    ensure_device()
+
+    # Dump UI hierarchy using uiautomator
+    info("Dumping UI hierarchy...")
+    try:
+        adb_shell(f"uiautomator dump {DEFAULT_UI_DUMP_DEVICE}", timeout=15)
+    except subprocess.CalledProcessError:
+        # Fallback: try without specifying path
+        adb_shell("uiautomator dump", timeout=15)
+
+    # Pull the dump from device
+    local_path = Path("/tmp/introspect_ui.xml")
+    adb(["pull", DEFAULT_UI_DUMP_DEVICE, str(local_path)], timeout=10)
+
+    if not local_path.exists():
+        die("UI dump file was not created on device")
+
+    # Parse XML
+    try:
+        tree = ET.parse(local_path)
+        root = tree.getroot()
+    except ET.ParseError as e:
+        die(f"Failed to parse UI XML: {e}")
+
+    parsed = _parse_ui_node(root)
+
+    # Clean up temp file
+    local_path.unlink(missing_ok=True)
+
+    if flat:
+        flat_nodes = _flatten_tree(parsed)
+        if json_output:
+            print(json.dumps([n for _, n in flat_nodes], indent=2, ensure_ascii=False))
+        else:
+            # Print as a human-readable tree
+            for depth, node in flat_nodes:
+                label = _node_label(node)
+                indent = "  " * depth
+                clickable = " [CLICKABLE]" if node["clickable"] else ""
+                print(f"{indent}{label}{clickable}")
+        return parsed
+
+    if json_output:
+        print(json.dumps(parsed, indent=2, ensure_ascii=False))
+    else:
+        _print_ui_tree(parsed)
+
+    return parsed
+
+
+def _node_label(node: dict) -> str:
+    """Build a human-readable label for a UI node."""
+    parts = []
+    if node["text"]:
+        parts.append(f'"{node["text"]}"')
+    if node["contentDesc"]:
+        parts.append(f'desc:"{node["contentDesc"]}"')
+    if node["resourceId"]:
+        parts.append(node["resourceId"].split("/")[-1] if "/" in node["resourceId"] else node["resourceId"])
+    if not parts:
+        parts.append(node["class"].split(".")[-1] if "." in node["class"] else node["class"])
+    bounds = node["bounds"]
+    parts.append(f"({bounds['x']},{bounds['y']} {bounds['width']}x{bounds['height']})")
+    return " | ".join(parts)
+
+
+def _print_ui_tree(node: dict, depth: int = 0) -> None:
+    """Pretty-print the UI tree."""
+    label = _node_label(node)
+    indent = "  " * depth
+    clickable = f"{GREEN}[TAP]{RESET}" if node["clickable"] else ""
+    interactive = ""
+    if node["clickable"]:
+        interactive = f" {clickable}"
+    elif node["checkable"]:
+        interactive = f" {CYAN}[CHK]{RESET}"
+    print(f"{indent}{label}{interactive}")
+    for child in node.get("children", []):
+        _print_ui_tree(child, depth + 1)
+
+
+# ── Find elements ───────────────────────────────────────────────────────────
+
+def find_element(text: str, json_output: bool = True) -> list:
+    """Find UI elements whose text or content-desc contains the given string."""
+    ensure_device()
+
+    # Dump UI
+    try:
+        adb_shell(f"uiautomator dump {DEFAULT_UI_DUMP_DEVICE}", timeout=15)
+    except subprocess.CalledProcessError:
+        adb_shell("uiautomator dump", timeout=15)
+
+    local_path = Path("/tmp/introspect_ui.xml")
+    adb(["pull", DEFAULT_UI_DUMP_DEVICE, str(local_path)], timeout=10)
+
+    if not local_path.exists():
+        die("UI dump file was not created")
+
+    try:
+        tree = ET.parse(local_path)
+        root = tree.getroot()
+    except ET.ParseError as e:
+        die(f"Failed to parse UI XML: {e}")
+
+    parsed = _parse_ui_node(root)
+    local_path.unlink(missing_ok=True)
+
+    # Search all nodes
+    search_lower = text.lower()
+    matches = []
+    for _, node in _flatten_tree(parsed):
+        node_text = (node["text"] + " " + node["contentDesc"]).lower()
+        if search_lower in node_text:
+            matches.append({
+                "text": node["text"],
+                "contentDesc": node["contentDesc"],
+                "resourceId": node["resourceId"],
+                "class": node["class"],
+                "clickable": node["clickable"],
+                "center": node["center"],
+                "bounds": node["bounds"],
+            })
+
+    if json_output:
+        print(json.dumps(matches, indent=2, ensure_ascii=False))
+    else:
+        if not matches:
+            print(f"No elements found matching '{text}'")
+        else:
+            print(f"Found {len(matches)} element(s) matching '{text}':")
+            for i, m in enumerate(matches):
+                c = m["center"]
+                tap_cmd = f"./script/introspect tap {c['x']} {c['y']}"
+                label = m["text"] or m["contentDesc"] or m["resourceId"]
+                print(f"  [{i}] {label} → center=({c['x']},{c['y']}) → {tap_cmd}")
+
+    return matches
+
+
+# ── Interaction commands ────────────────────────────────────────────────────
+
+def tap(x: int, y: int) -> None:
+    """Tap at screen coordinates."""
+    ensure_device()
+    adb_shell(f"input tap {x} {y}")
+    success(f"Tapped at ({x}, {y})")
+
+
+def longpress(x: int, y: int, duration_ms: int = 1000) -> None:
+    """Long-press at screen coordinates."""
+    ensure_device()
+    adb_shell(f"input swipe {x} {y} {x} {y} {duration_ms}")
+    success(f"Long-pressed at ({x}, {y}) for {duration_ms}ms")
+
+
+def type_text(text: str) -> None:
+    """Type text into the focused field."""
+    ensure_device()
+    # Escape special characters for adb shell
+    escaped = text.replace(" ", "%s").replace("'", "\\'").replace('"', '\\"')
+    adb_shell(f"input text '{escaped}'")
+    success(f"Typed: '{text}'")
+
+
+def swipe(x1: int, y1: int, x2: int, y2: int, duration_ms: int = 300) -> None:
+    """Perform a swipe gesture."""
+    ensure_device()
+    adb_shell(f"input swipe {x1} {y1} {x2} {y2} {duration_ms}")
+    success(f"Swiped from ({x1},{y1}) to ({x2},{y2})")
+
+
+def press_key(key: str) -> None:
+    """Press a key. Common keys: back, home, enter, delete, menu, recent, volume_up, volume_down."""
+    ensure_device()
+    # Map common key names to Android keycodes
+    key_map = {
+        "back": "KEYCODE_BACK",
+        "home": "KEYCODE_HOME",
+        "enter": "KEYCODE_ENTER",
+        "delete": "KEYCODE_DEL",
+        "menu": "KEYCODE_MENU",
+        "recent": "KEYCODE_APP_SWITCH",
+        "volume_up": "KEYCODE_VOLUME_UP",
+        "volume_down": "KEYCODE_VOLUME_DOWN",
+        "power": "KEYCODE_POWER",
+        "tab": "KEYCODE_TAB",
+        "space": "KEYCODE_SPACE",
+        "search": "KEYCODE_SEARCH",
+    }
+    keycode = key_map.get(key.lower(), key.upper())
+    adb_shell(f"input keyevent {keycode}")
+    success(f"Pressed: {key}")
+
+
+# ── Logcat ──────────────────────────────────────────────────────────────────
+
+def logcat(filter_pattern: str = "MealControl", lines: int = 100, clear: bool = False) -> None:
+    """Dump recent logcat lines."""
+    ensure_device()
+
+    if clear:
+        adb(["logcat", "-c"], timeout=5)
+        success("Logcat cleared")
+        return
+
+    cmd = [get_adb(), "logcat", "-d", "-t", str(lines)]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+
+    output = result.stdout
+    if filter_pattern:
+        filtered = [line for line in output.splitlines() if filter_pattern in line]
+        output = "\n".join(filtered)
+
+    if not output.strip():
+        info("No matching log lines found")
+    else:
+        print(output)
+
+
+# ── Wait commands ───────────────────────────────────────────────────────────
+
+def wait_text(text: str, timeout: int = 30) -> None:
+    """Wait until the given text appears on screen."""
+    ensure_device()
+    info(f"Waiting for text '{text}' to appear (timeout: {timeout}s)...")
+    deadline = time.time() + timeout
+
+    while time.time() < deadline:
+        try:
+            adb_shell(f"uiautomator dump {DEFAULT_UI_DUMP_DEVICE}", timeout=10)
+        except Exception:
+            time.sleep(1)
+            continue
+
+        local_path = Path("/tmp/introspect_ui.xml")
+        try:
+            adb(["pull", DEFAULT_UI_DUMP_DEVICE, str(local_path)], timeout=10)
+        except Exception:
+            time.sleep(1)
+            continue
+
+        if local_path.exists():
+            content = local_path.read_text(errors="ignore")
+            local_path.unlink(missing_ok=True)
+            if text in content:
+                success(f"Text '{text}' appeared on screen")
+                return
+
+        time.sleep(1.5)
+
+    die(f"Text '{text}' did not appear within {timeout}s")
+
+
+# ── Utils ───────────────────────────────────────────────────────────────────
+
+def _yesno(val: bool) -> str:
+    return f"{GREEN}yes{RESET}" if val else f"{RED}no{RESET}"
+
+
+# ── CLI dispatcher ──────────────────────────────────────────────────────────
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build the argument parser."""
+    parser = argparse.ArgumentParser(
+        description="AI-friendly Android app testing harness for MealControl",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  ./script/introspect emulator start                    # Start emulator & wait for boot
+  ./script/introspect emulator status                   # Check emulator status
+  ./script/introspect install                           # Build & install debug APK
+  ./script/introspect launch                            # Launch the app
+  ./script/introspect screenshot                        # Take screenshot
+  ./script/introspect ui --json                         # Dump UI as JSON
+  ./script/introspect find "Settings"                   # Find element by text
+  ./script/introspect tap 500 300                       # Tap at coordinates
+  ./script/introspect type "Hello"                      # Type text
+  ./script/introspect press back                        # Press back button
+  ./script/introspect logcat --filter MealDetection     # Filter logs
+        """,
+    )
+    sub = parser.add_subparsers(dest="command", help="Available commands")
+
+    # emulator start
+    p = sub.add_parser("emulator-start", help="Start emulator and wait for boot",
+                       aliases=["emulator", "emu"])
+    p.add_argument("avd", nargs="?", default=DEFAULT_AVD, help="AVD name")
+
+    # emulator stop
+    sub.add_parser("emulator-stop", help="Stop the emulator",
+                   aliases=["emu-stop", "stop-emu"])
+
+    # emulator status
+    sub.add_parser("emulator-status", help="Show emulator and device status",
+                   aliases=["status", "emu-status"])
+
+    # install
+    p = sub.add_parser("install", help="Build and install APK")
+    p.add_argument("--release", action="store_true", help="Build release variant")
+
+    # launch
+    p = sub.add_parser("launch", help="Launch the app")
+    p.add_argument("--release", action="store_true", help="Launch release variant")
+
+    # stop-app
+    sub.add_parser("stop-app", help="Force-stop the app", aliases=["stop"])
+
+    # clear-app-data
+    sub.add_parser("clear-app-data", help="Clear app data", aliases=["clear-data", "clear"])
+
+    # screenshot
+    p = sub.add_parser("screenshot", help="Capture screenshot", aliases=["shot", "ss"])
+    p.add_argument("path", nargs="?", default=DEFAULT_SCREENSHOT_PATH, help="Output path")
+
+    # ui dump
+    p = sub.add_parser("ui", help="Dump UI hierarchy")
+    p.add_argument("--json", action="store_true", default=True, help="JSON output (default)")
+    p.add_argument("--text", action="store_true", help="Human-readable tree output")
+    p.add_argument("--flat", action="store_true", help="Flat list instead of tree")
+
+    # find
+    p = sub.add_parser("find", help="Find UI element by text")
+    p.add_argument("text", help="Text to search for")
+    p.add_argument("--json", action="store_true", default=True, help="JSON output")
+    p.add_argument("--text", dest="text_output", action="store_true", help="Human-readable output")
+
+    # tap
+    p = sub.add_parser("tap", help="Tap at coordinates")
+    p.add_argument("x", type=int, help="X coordinate")
+    p.add_argument("y", type=int, help="Y coordinate")
+
+    # longpress
+    p = sub.add_parser("longpress", help="Long-press at coordinates", aliases=["long-press", "lp"])
+    p.add_argument("x", type=int, help="X coordinate")
+    p.add_argument("y", type=int, help="Y coordinate")
+    p.add_argument("duration_ms", nargs="?", type=int, default=1000, help="Duration in ms")
+
+    # type
+    p = sub.add_parser("type", help="Type text")
+    p.add_argument("text", help="Text to type")
+
+    # swipe
+    p = sub.add_parser("swipe", help="Swipe gesture")
+    p.add_argument("x1", type=int)
+    p.add_argument("y1", type=int)
+    p.add_argument("x2", type=int)
+    p.add_argument("y2", type=int)
+    p.add_argument("duration_ms", nargs="?", type=int, default=300)
+
+    # press
+    p = sub.add_parser("press", help="Press a key (back, home, enter, etc.)")
+    p.add_argument("key", help="Key to press")
+
+    # logcat
+    p = sub.add_parser("logcat", help="Dump logcat", aliases=["logs", "log"])
+    p.add_argument("--filter", "-f", default="MealControl", help="Filter pattern")
+    p.add_argument("--lines", "-n", type=int, default=100, help="Number of lines")
+    p.add_argument("--clear", "-c", action="store_true", help="Clear logcat buffer")
+
+    # wait-boot
+    p = sub.add_parser("wait-boot", help="Wait for device boot", aliases=["boot"])
+    p.add_argument("timeout", nargs="?", type=int, default=120, help="Timeout in seconds")
+
+    # wait-text
+    p = sub.add_parser("wait-text", help="Wait for text to appear on screen", aliases=["wait"])
+    p.add_argument("text", help="Text to wait for")
+    p.add_argument("timeout", nargs="?", type=int, default=30, help="Timeout in seconds")
+
+    return parser
+
+
+def main() -> None:
+    """Main entry point."""
+    parser = build_parser()
+    args = parser.parse_args()
+
+    if not args.command:
+        parser.print_help()
+        sys.exit(0)
+
+    cmd = args.command
+
+    # Normalize aliases to canonical command
+    alias_map = {
+        "emulator": "emulator-start", "emu": "emulator-start",
+        "emu-stop": "emulator-stop", "stop-emu": "emulator-stop",
+        "status": "emulator-status", "emu-status": "emulator-status",
+        "shot": "screenshot", "ss": "screenshot",
+        "stop": "stop-app",
+        "clear-data": "clear-app-data", "clear": "clear-app-data",
+        "logs": "logcat", "log": "logcat",
+        "boot": "wait-boot",
+        "wait": "wait-text",
+        "long-press": "longpress", "lp": "longpress",
+    }
+    cmd = alias_map.get(cmd, cmd)
+
+    try:
+        if cmd == "emulator-start":
+            emulator_start(args.avd)
+        elif cmd == "emulator-stop":
+            emulator_stop()
+        elif cmd == "emulator-status":
+            emulator_status()
+        elif cmd == "install":
+            variant = "release" if args.release else "debug"
+            app_install(variant)
+        elif cmd == "launch":
+            variant = "release" if args.release else "debug"
+            app_launch(variant)
+        elif cmd == "stop-app":
+            app_stop()
+        elif cmd == "clear-app-data":
+            app_clear_data()
+        elif cmd == "screenshot":
+            screenshot(args.path)
+        elif cmd == "ui":
+            use_json = not getattr(args, 'text_output', False) and getattr(args, 'json', True)
+            flat = getattr(args, 'flat', False)
+            ui_dump(json_output=use_json, flat=flat)
+        elif cmd == "find":
+            use_json = not getattr(args, 'text_output', False) and getattr(args, 'json', True)
+            find_element(args.text, json_output=use_json)
+        elif cmd == "tap":
+            tap(args.x, args.y)
+        elif cmd == "longpress":
+            longpress(args.x, args.y, args.duration_ms)
+        elif cmd == "type":
+            type_text(args.text)
+        elif cmd == "swipe":
+            swipe(args.x1, args.y1, args.x2, args.y2, args.duration_ms)
+        elif cmd == "press":
+            press_key(args.key)
+        elif cmd == "logcat":
+            logcat(filter_pattern=args.filter, lines=args.lines, clear=args.clear)
+        elif cmd == "wait-boot":
+            emulator_wait_boot(args.timeout)
+        elif cmd == "wait-text":
+            wait_text(args.text, args.timeout)
+        else:
+            parser.print_help()
+            sys.exit(1)
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        sys.exit(130)
+
+
+if __name__ == "__main__":
+    main()
