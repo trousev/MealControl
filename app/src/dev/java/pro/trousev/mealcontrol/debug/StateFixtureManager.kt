@@ -7,11 +7,16 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import pro.trousev.mealcontrol.ServiceLocator
 import pro.trousev.mealcontrol.data.local.entity.ConversationEntity
+import pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages
 import pro.trousev.mealcontrol.data.local.entity.MealComponentEntity
 import pro.trousev.mealcontrol.data.local.entity.MealEntity
+import pro.trousev.mealcontrol.data.local.entity.MealWithComponents
 import pro.trousev.mealcontrol.data.local.entity.MessageEntity
 import pro.trousev.mealcontrol.data.local.entity.UserSettingsEntity
-import java.time.Instant
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.TimeZone
 
 /**
  * Handles serialization and deserialization of the complete application state
@@ -21,22 +26,29 @@ import java.time.Instant
  * initialized before calling any methods.
  */
 object StateFixtureManager {
-    private val json = Json {
-        prettyPrint = true
-        ignoreUnknownKeys = false
-        encodeDefaults = true
-    }
+    private val json =
+        Json {
+            prettyPrint = true
+            ignoreUnknownKeys = false
+            encodeDefaults = true
+        }
 
     private const val FORMAT_VERSION = 1
     const val DUMP_FILE_NAME = "state_fixture.json"
     const val RESTORE_FILE_NAME = "restore_fixture.json"
+
+    private fun iso8601Now(): String {
+        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
+        sdf.timeZone = TimeZone.getTimeZone("UTC")
+        return sdf.format(Date())
+    }
 
     // ── Serializable data classes ─────────────────────────────────────────
 
     @Serializable
     data class StateFixture(
         val formatVersion: Int = FORMAT_VERSION,
-        val createdAt: String = Instant.now().toString(),
+        val createdAt: String = iso8601Now(),
         val description: String = "",
         val roomSchemaVersion: Int = 8,
         val data: FixtureData,
@@ -137,29 +149,33 @@ object StateFixtureManager {
         val settingsRepo = ServiceLocator.provideUserSettingsRepository()
 
         // Read all data within a single blocking coroutine scope
-        val (userSettings, mealsWithComponents, conversationsWithMessages) = runBlocking {
-            val settings = settingsRepo.getSettings()
-            val meals = db.mealDao().getAllMealsWithComponents()
-            val conversations = db.conversationDao().getAllConversationsWithMessages()
-            Triple(settings, meals, conversations)
-        }
+        val (userSettings, mealsWithComponents, conversationsWithMessages) =
+            runBlocking {
+                val settings = settingsRepo.getSettings()
+                val meals = db.mealDao().getAllMealsWithComponents()
+                val conversations = db.conversationDao().getAllConversationsWithMessages()
+                Triple(settings, meals, conversations)
+            }
 
         // Build fixture data
-        val fixtureData = FixtureData(
-            userSettings = userSettings?.let { mapToUserSettingsData(it) },
-            meals = mealsWithComponents.map { mapToMealWithComponentsData(it) },
-            conversations = conversationsWithMessages.map { mapToConversationWithMessagesData(it) },
-        )
+        val fixtureData =
+            FixtureData(
+                userSettings = userSettings?.let { mapToUserSettingsData(it) },
+                meals = mealsWithComponents.map { mapToMealWithComponentsData(it) },
+                conversations = conversationsWithMessages.map { mapToConversationWithMessagesData(it) },
+            )
 
         // API key comes from SecureStorage (already filled in by getSettings())
-        val secureStorage = SecureStorageData(
-            apiKey = userSettings?.openAiApiKey ?: "",
-        )
+        val secureStorage =
+            SecureStorageData(
+                apiKey = userSettings?.openAiApiKey ?: "",
+            )
 
-        val fixture = StateFixture(
-            data = fixtureData,
-            secureStorage = secureStorage,
-        )
+        val fixture =
+            StateFixture(
+                data = fixtureData,
+                secureStorage = secureStorage,
+            )
 
         return json.encodeToString(fixture)
     }
@@ -170,7 +186,10 @@ object StateFixtureManager {
      *
      * @throws IllegalArgumentException if the fixture format version is unsupported
      */
-    fun restoreState(context: Context, jsonString: String) {
+    fun restoreState(
+        context: Context,
+        jsonString: String,
+    ) {
         val fixture = json.decodeFromString<StateFixture>(jsonString)
 
         if (fixture.formatVersion != FORMAT_VERSION) {
@@ -202,9 +221,10 @@ object StateFixtureManager {
                 val mealId = db.mealDao().insertMeal(mealEntity)
 
                 if (mealWithComponents.components.isNotEmpty()) {
-                    val componentEntities = mealWithComponents.components.map { component ->
-                        mapToMealComponentEntity(component, mealId)
-                    }
+                    val componentEntities =
+                        mealWithComponents.components.map { component ->
+                            mapToMealComponentEntity(component, mealId)
+                        }
                     db.mealDao().insertComponents(componentEntities)
                 }
             }
@@ -224,127 +244,139 @@ object StateFixtureManager {
 
     // ── Mapping helpers ──────────────────────────────────────────────────
 
-    private fun mapToUserSettingsData(entity: UserSettingsEntity) = UserSettingsData(
-        id = entity.id,
-        weightKg = entity.weightKg,
-        heightCm = entity.heightCm,
-        age = entity.age,
-        gender = entity.gender,
-        targetWeightChangeKg = entity.targetWeightChangeKg,
-        activityLevel = entity.activityLevel,
-        calorieDistribution = entity.calorieDistribution,
-        customProteinPercent = entity.customProteinPercent,
-        customFatPercent = entity.customFatPercent,
-        customCarbPercent = entity.customCarbPercent,
-        openAiApiKey = entity.openAiApiKey,
-        customModeEnabled = entity.customModeEnabled,
-        hideCaloriesEnabled = entity.hideCaloriesEnabled,
-        hideBudgetExceededEnabled = entity.hideBudgetExceededEnabled,
-        customProteinGrams = entity.customProteinGrams,
-        customFatGrams = entity.customFatGrams,
-        customCarbGrams = entity.customCarbGrams,
-    )
+    private fun mapToUserSettingsData(entity: UserSettingsEntity): UserSettingsData =
+        UserSettingsData(
+            id = entity.id,
+            weightKg = entity.weightKg,
+            heightCm = entity.heightCm,
+            age = entity.age,
+            gender = entity.gender,
+            targetWeightChangeKg = entity.targetWeightChangeKg,
+            activityLevel = entity.activityLevel,
+            calorieDistribution = entity.calorieDistribution,
+            customProteinPercent = entity.customProteinPercent,
+            customFatPercent = entity.customFatPercent,
+            customCarbPercent = entity.customCarbPercent,
+            openAiApiKey = entity.openAiApiKey,
+            customModeEnabled = entity.customModeEnabled,
+            hideCaloriesEnabled = entity.hideCaloriesEnabled,
+            hideBudgetExceededEnabled = entity.hideBudgetExceededEnabled,
+            customProteinGrams = entity.customProteinGrams,
+            customFatGrams = entity.customFatGrams,
+            customCarbGrams = entity.customCarbGrams,
+        )
 
-    private fun mapToUserSettingsEntity(data: UserSettingsData) = UserSettingsEntity(
-        id = 1,
-        weightKg = data.weightKg,
-        heightCm = data.heightCm,
-        age = data.age,
-        gender = data.gender,
-        targetWeightChangeKg = data.targetWeightChangeKg,
-        activityLevel = data.activityLevel,
-        calorieDistribution = data.calorieDistribution,
-        customProteinPercent = data.customProteinPercent,
-        customFatPercent = data.customFatPercent,
-        customCarbPercent = data.customCarbPercent,
-        openAiApiKey = data.openAiApiKey,
-        customModeEnabled = data.customModeEnabled,
-        hideCaloriesEnabled = data.hideCaloriesEnabled,
-        hideBudgetExceededEnabled = data.hideBudgetExceededEnabled,
-        customProteinGrams = data.customProteinGrams,
-        customFatGrams = data.customFatGrams,
-        customCarbGrams = data.customCarbGrams,
-    )
+    private fun mapToUserSettingsEntity(data: UserSettingsData): UserSettingsEntity =
+        UserSettingsEntity(
+            id = 1,
+            weightKg = data.weightKg,
+            heightCm = data.heightCm,
+            age = data.age,
+            gender = data.gender,
+            targetWeightChangeKg = data.targetWeightChangeKg,
+            activityLevel = data.activityLevel,
+            calorieDistribution = data.calorieDistribution,
+            customProteinPercent = data.customProteinPercent,
+            customFatPercent = data.customFatPercent,
+            customCarbPercent = data.customCarbPercent,
+            openAiApiKey = data.openAiApiKey,
+            customModeEnabled = data.customModeEnabled,
+            hideCaloriesEnabled = data.hideCaloriesEnabled,
+            hideBudgetExceededEnabled = data.hideBudgetExceededEnabled,
+            customProteinGrams = data.customProteinGrams,
+            customFatGrams = data.customFatGrams,
+            customCarbGrams = data.customCarbGrams,
+        )
 
     private fun mapToMealWithComponentsData(
-        mealWithComponents: pro.trousev.mealcontrol.data.local.entity.MealWithComponents,
-    ) = MealWithComponentsData(
-        meal = MealData(
-            id = mealWithComponents.meal.id,
-            photoUri = mealWithComponents.meal.photoUri,
-            description = mealWithComponents.meal.description,
-            timestamp = mealWithComponents.meal.timestamp,
-        ),
-        components = mealWithComponents.components.map { component ->
-            MealComponentData(
-                id = component.id,
-                mealId = component.mealId,
-                name = component.name,
-                weightGrams = component.weightGrams,
-                calories = component.calories,
-                proteinGrams = component.proteinGrams,
-                fatGrams = component.fatGrams,
-                carbGrams = component.carbGrams,
-            )
-        },
-    )
+        mealWithComponents: MealWithComponents,
+    ): MealWithComponentsData =
+        MealWithComponentsData(
+            meal =
+                MealData(
+                    id = mealWithComponents.meal.id,
+                    photoUri = mealWithComponents.meal.photoUri,
+                    description = mealWithComponents.meal.description,
+                    timestamp = mealWithComponents.meal.timestamp,
+                ),
+            components =
+                mealWithComponents.components.map { component ->
+                    MealComponentData(
+                        id = component.id,
+                        mealId = component.mealId,
+                        name = component.name,
+                        weightGrams = component.weightGrams,
+                        calories = component.calories,
+                        proteinGrams = component.proteinGrams,
+                        fatGrams = component.fatGrams,
+                        carbGrams = component.carbGrams,
+                    )
+                },
+        )
 
     private fun mapToConversationWithMessagesData(
-        conversationWithMessages: pro.trousev.mealcontrol.data.local.entity.ConversationWithMessages,
-    ) = ConversationWithMessagesData(
-        conversation = ConversationData(
-            id = conversationWithMessages.conversation.id,
-            title = conversationWithMessages.conversation.title,
-            createdAt = conversationWithMessages.conversation.createdAt,
-            isMealDetection = conversationWithMessages.conversation.isMealDetection,
-        ),
-        messages = conversationWithMessages.messages.map { message ->
-            MessageData(
-                id = message.id,
-                conversationId = message.conversationId,
-                content = message.content,
-                isFromUser = message.isFromUser,
-                timestamp = message.timestamp,
-            )
-        },
-    )
+        conversationWithMessages: ConversationWithMessages,
+    ): ConversationWithMessagesData =
+        ConversationWithMessagesData(
+            conversation =
+                ConversationData(
+                    id = conversationWithMessages.conversation.id,
+                    title = conversationWithMessages.conversation.title,
+                    createdAt = conversationWithMessages.conversation.createdAt,
+                    isMealDetection = conversationWithMessages.conversation.isMealDetection,
+                ),
+            messages =
+                conversationWithMessages.messages.map { message ->
+                    MessageData(
+                        id = message.id,
+                        conversationId = message.conversationId,
+                        content = message.content,
+                        isFromUser = message.isFromUser,
+                        timestamp = message.timestamp,
+                    )
+                },
+        )
 
-    private fun mapToMealEntity(data: MealData) = MealEntity(
-        id = data.id,
-        photoUri = data.photoUri,
-        description = data.description,
-        timestamp = data.timestamp,
-    )
+    private fun mapToMealEntity(data: MealData): MealEntity =
+        MealEntity(
+            id = data.id,
+            photoUri = data.photoUri,
+            description = data.description,
+            timestamp = data.timestamp,
+        )
 
     private fun mapToMealComponentEntity(
         data: MealComponentData,
         mealId: Long,
-    ) = MealComponentEntity(
-        id = data.id,
-        mealId = mealId,
-        name = data.name,
-        weightGrams = data.weightGrams,
-        calories = data.calories,
-        proteinGrams = data.proteinGrams,
-        fatGrams = data.fatGrams,
-        carbGrams = data.carbGrams,
-    )
+    ): MealComponentEntity =
+        MealComponentEntity(
+            id = data.id,
+            mealId = mealId,
+            name = data.name,
+            weightGrams = data.weightGrams,
+            calories = data.calories,
+            proteinGrams = data.proteinGrams,
+            fatGrams = data.fatGrams,
+            carbGrams = data.carbGrams,
+        )
 
-    private fun mapToConversationEntity(data: ConversationData) = ConversationEntity(
-        id = data.id,
-        title = data.title,
-        createdAt = data.createdAt,
-        isMealDetection = data.isMealDetection,
-    )
+    private fun mapToConversationEntity(data: ConversationData): ConversationEntity =
+        ConversationEntity(
+            id = data.id,
+            title = data.title,
+            createdAt = data.createdAt,
+            isMealDetection = data.isMealDetection,
+        )
 
     private fun mapToMessageEntity(
         data: MessageData,
         conversationId: Long,
-    ) = MessageEntity(
-        id = data.id,
-        conversationId = conversationId,
-        content = data.content,
-        isFromUser = data.isFromUser,
-        timestamp = data.timestamp,
-    )
+    ): MessageEntity =
+        MessageEntity(
+            id = data.id,
+            conversationId = conversationId,
+            content = data.content,
+            isFromUser = data.isFromUser,
+            timestamp = data.timestamp,
+        )
 }

@@ -28,25 +28,27 @@ class StateFixtureManagerTest {
 
     @Before
     fun setup() {
-        database = Room
-            .inMemoryDatabaseBuilder(
-                RuntimeEnvironment.getApplication().applicationContext,
-                MealControlDatabase::class.java,
-            ).allowMainThreadQueries()
-            .build()
+        database =
+            Room
+                .inMemoryDatabaseBuilder(
+                    RuntimeEnvironment.getApplication().applicationContext,
+                    MealControlDatabase::class.java,
+                ).allowMainThreadQueries()
+                .build()
 
         storedApiKey = ""
         retrievedApiKeyCount = 0
-        val mockSecureStorage = object : SecureStorage {
-            override fun storeApiKey(apiKey: String) {
-                storedApiKey = apiKey
-            }
+        val mockSecureStorage =
+            object : SecureStorage {
+                override fun storeApiKey(apiKey: String) {
+                    storedApiKey = apiKey
+                }
 
-            override fun retrieveApiKey(): String {
-                retrievedApiKeyCount++
-                return storedApiKey
+                override fun retrieveApiKey(): String {
+                    retrievedApiKeyCount++
+                    return storedApiKey
+                }
             }
-        }
         ServiceLocator.initialize(
             RuntimeEnvironment.getApplication(),
             mockSecureStorage,
@@ -110,13 +112,14 @@ class StateFixtureManagerTest {
         val context = RuntimeEnvironment.getApplication().applicationContext
 
         runBlocking {
-            val mealId = database.mealDao().insertMeal(
-                MealEntity(
-                    photoUri = "content://test/photo1",
-                    description = "Chicken salad",
-                    timestamp = 1000000L,
-                ),
-            )
+            val mealId =
+                database.mealDao().insertMeal(
+                    MealEntity(
+                        photoUri = "content://test/photo1",
+                        description = "Chicken salad",
+                        timestamp = 1000000L,
+                    ),
+                )
             database.mealDao().insertComponents(
                 listOf(
                     MealComponentEntity(
@@ -147,13 +150,14 @@ class StateFixtureManagerTest {
         val context = RuntimeEnvironment.getApplication().applicationContext
 
         runBlocking {
-            val conversationId = database.conversationDao().insertConversation(
-                ConversationEntity(
-                    title = "Diet advice",
-                    createdAt = 2000000L,
-                    isMealDetection = false,
-                ),
-            )
+            val conversationId =
+                database.conversationDao().insertConversation(
+                    ConversationEntity(
+                        title = "Diet advice",
+                        createdAt = 2000000L,
+                        isMealDetection = false,
+                    ),
+                )
             database.messageDao().insertMessage(
                 MessageEntity(
                     conversationId = conversationId,
@@ -189,18 +193,19 @@ class StateFixtureManagerTest {
             database.userSettingsDao().saveSettings(UserSettingsEntity(weightKg = 80f))
         }
 
-        val emptyFixture = """
-        {
-          "formatVersion": 1,
-          "data": {
-            "meals": [],
-            "conversations": []
-          },
-          "secureStorage": {
-            "apiKey": ""
-          }
-        }
-        """.trimIndent()
+        val emptyFixture =
+            """
+            {
+              "formatVersion": 1,
+              "data": {
+                "meals": [],
+                "conversations": []
+              },
+              "secureStorage": {
+                "apiKey": ""
+              }
+            }
+            """.trimIndent()
 
         StateFixtureManager.restoreState(context, emptyFixture)
 
@@ -214,38 +219,39 @@ class StateFixtureManagerTest {
     fun restoreState_withUserSettings_populatesSettings() {
         val context = RuntimeEnvironment.getApplication().applicationContext
 
-        val fixture = """
-        {
-          "formatVersion": 1,
-          "data": {
-            "userSettings": {
-              "id": 1,
-              "weightKg": 120.0,
-              "heightCm": 180.0,
-              "age": 35,
-              "gender": "MALE",
-              "targetWeightChangeKg": -0.5,
-              "activityLevel": 2,
-              "calorieDistribution": "HIGH_PROTEIN",
-              "customProteinPercent": 40,
-              "customFatPercent": 30,
-              "customCarbPercent": 30,
-              "openAiApiKey": "sk-restored-key",
-              "customModeEnabled": false,
-              "hideCaloriesEnabled": false,
-              "hideBudgetExceededEnabled": false,
-              "customProteinGrams": 0,
-              "customFatGrams": 0,
-              "customCarbGrams": 0
-            },
-            "meals": [],
-            "conversations": []
-          },
-          "secureStorage": {
-            "apiKey": "sk-restored-key"
-          }
-        }
-        """.trimIndent()
+        val fixture =
+            """
+            {
+              "formatVersion": 1,
+              "data": {
+                "userSettings": {
+                  "id": 1,
+                  "weightKg": 120.0,
+                  "heightCm": 180.0,
+                  "age": 35,
+                  "gender": "MALE",
+                  "targetWeightChangeKg": -0.5,
+                  "activityLevel": 2,
+                  "calorieDistribution": "HIGH_PROTEIN",
+                  "customProteinPercent": 40,
+                  "customFatPercent": 30,
+                  "customCarbPercent": 30,
+                  "openAiApiKey": "sk-restored-key",
+                  "customModeEnabled": false,
+                  "hideCaloriesEnabled": false,
+                  "hideBudgetExceededEnabled": false,
+                  "customProteinGrams": 0,
+                  "customFatGrams": 0,
+                  "customCarbGrams": 0
+                },
+                "meals": [],
+                "conversations": []
+              },
+              "secureStorage": {
+                "apiKey": "sk-restored-key"
+              }
+            }
+            """.trimIndent()
 
         StateFixtureManager.restoreState(context, fixture)
 
@@ -269,39 +275,40 @@ class StateFixtureManagerTest {
     fun restoreState_withMeals_populatesMealsAndComponents() {
         val context = RuntimeEnvironment.getApplication().applicationContext
 
-        val fixture = """
-        {
-          "formatVersion": 1,
-          "data": {
-            "meals": [
-              {
-                "meal": {
-                  "id": 1,
-                  "photoUri": "content://test/meal1",
-                  "description": "Test meal",
-                  "timestamp": 5000000
-                },
-                "components": [
+        val fixture =
+            """
+            {
+              "formatVersion": 1,
+              "data": {
+                "meals": [
                   {
-                    "id": 1,
-                    "mealId": 1,
-                    "name": "Test component",
-                    "weightGrams": 100,
-                    "calories": 200,
-                    "proteinGrams": 15,
-                    "fatGrams": 10,
-                    "carbGrams": 5
+                    "meal": {
+                      "id": 1,
+                      "photoUri": "content://test/meal1",
+                      "description": "Test meal",
+                      "timestamp": 5000000
+                    },
+                    "components": [
+                      {
+                        "id": 1,
+                        "mealId": 1,
+                        "name": "Test component",
+                        "weightGrams": 100,
+                        "calories": 200,
+                        "proteinGrams": 15,
+                        "fatGrams": 10,
+                        "carbGrams": 5
+                      }
+                    ]
                   }
-                ]
+                ],
+                "conversations": []
+              },
+              "secureStorage": {
+                "apiKey": ""
               }
-            ],
-            "conversations": []
-          },
-          "secureStorage": {
-            "apiKey": ""
-          }
-        }
-        """.trimIndent()
+            }
+            """.trimIndent()
 
         StateFixtureManager.restoreState(context, fixture)
 
@@ -326,43 +333,44 @@ class StateFixtureManagerTest {
     fun restoreState_withConversations_populatesConversationsAndMessages() {
         val context = RuntimeEnvironment.getApplication().applicationContext
 
-        val fixture = """
-        {
-          "formatVersion": 1,
-          "data": {
-            "meals": [],
-            "conversations": [
-              {
-                "conversation": {
-                  "id": 1,
-                  "title": "Test chat",
-                  "createdAt": 7000000,
-                  "isMealDetection": false
-                },
-                "messages": [
+        val fixture =
+            """
+            {
+              "formatVersion": 1,
+              "data": {
+                "meals": [],
+                "conversations": [
                   {
-                    "id": 1,
-                    "conversationId": 1,
-                    "content": "Hello",
-                    "isFromUser": true,
-                    "timestamp": 7001000
-                  },
-                  {
-                    "id": 2,
-                    "conversationId": 1,
-                    "content": "Hi there!",
-                    "isFromUser": false,
-                    "timestamp": 7002000
+                    "conversation": {
+                      "id": 1,
+                      "title": "Test chat",
+                      "createdAt": 7000000,
+                      "isMealDetection": false
+                    },
+                    "messages": [
+                      {
+                        "id": 1,
+                        "conversationId": 1,
+                        "content": "Hello",
+                        "isFromUser": true,
+                        "timestamp": 7001000
+                      },
+                      {
+                        "id": 2,
+                        "conversationId": 1,
+                        "content": "Hi there!",
+                        "isFromUser": false,
+                        "timestamp": 7002000
+                      }
+                    ]
                   }
                 ]
+              },
+              "secureStorage": {
+                "apiKey": ""
               }
-            ]
-          },
-          "secureStorage": {
-            "apiKey": ""
-          }
-        }
-        """.trimIndent()
+            }
+            """.trimIndent()
 
         StateFixtureManager.restoreState(context, fixture)
 
@@ -404,9 +412,14 @@ class StateFixtureManagerTest {
                 ),
             )
 
-            val mealId = database.mealDao().insertMeal(
-                MealEntity(photoUri = "uri1", description = "Meal 1", timestamp = 1000L),
-            )
+            val mealId =
+                database.mealDao().insertMeal(
+                    MealEntity(
+                        photoUri = "uri1",
+                        description = "Meal 1",
+                        timestamp = 1000L,
+                    ),
+                )
             database.mealDao().insertComponents(
                 listOf(
                     MealComponentEntity(mealId = mealId, name = "Comp 1", calories = 100),
@@ -414,11 +427,17 @@ class StateFixtureManagerTest {
                 ),
             )
 
-            val convId = database.conversationDao().insertConversation(
-                ConversationEntity(title = "Conv 1", createdAt = 2000L),
-            )
+            val convId =
+                database.conversationDao().insertConversation(
+                    ConversationEntity(title = "Conv 1", createdAt = 2000L),
+                )
             database.messageDao().insertMessage(
-                MessageEntity(conversationId = convId, content = "Msg 1", isFromUser = true, timestamp = 3000L),
+                MessageEntity(
+                    conversationId = convId,
+                    content = "Msg 1",
+                    isFromUser = true,
+                    timestamp = 3000L,
+                ),
             )
         }
 
@@ -476,18 +495,19 @@ class StateFixtureManagerTest {
     fun restoreState_unsupportedFormatVersion_throwsException() {
         val context = RuntimeEnvironment.getApplication().applicationContext
 
-        val fixture = """
-        {
-          "formatVersion": 999,
-          "data": {
-            "meals": [],
-            "conversations": []
-          },
-          "secureStorage": {
-            "apiKey": ""
-          }
-        }
-        """.trimIndent()
+        val fixture =
+            """
+            {
+              "formatVersion": 999,
+              "data": {
+                "meals": [],
+                "conversations": []
+              },
+              "secureStorage": {
+                "apiKey": ""
+              }
+            }
+            """.trimIndent()
 
         StateFixtureManager.restoreState(context, fixture)
     }
@@ -499,42 +519,47 @@ class StateFixtureManagerTest {
         runBlocking {
             database.userSettingsDao().saveSettings(UserSettingsEntity(weightKg = 50f))
             database.mealDao().insertMeal(
-                MealEntity(photoUri = "old", description = "Old meal", timestamp = 1L),
+                MealEntity(
+                    photoUri = "old",
+                    description = "Old meal",
+                    timestamp = 1L,
+                ),
             )
         }
 
-        val fixture = """
-        {
-          "formatVersion": 1,
-          "data": {
-            "userSettings": {
-              "id": 1,
-              "weightKg": 100.0,
-              "heightCm": 180.0,
-              "age": 30,
-              "gender": "MALE",
-              "targetWeightChangeKg": 0.0,
-              "activityLevel": 1,
-              "calorieDistribution": "HIGH_PROTEIN",
-              "customProteinPercent": 40,
-              "customFatPercent": 30,
-              "customCarbPercent": 30,
-              "openAiApiKey": "",
-              "customModeEnabled": false,
-              "hideCaloriesEnabled": false,
-              "hideBudgetExceededEnabled": false,
-              "customProteinGrams": 0,
-              "customFatGrams": 0,
-              "customCarbGrams": 0
-            },
-            "meals": [],
-            "conversations": []
-          },
-          "secureStorage": {
-            "apiKey": ""
-          }
-        }
-        """.trimIndent()
+        val fixture =
+            """
+            {
+              "formatVersion": 1,
+              "data": {
+                "userSettings": {
+                  "id": 1,
+                  "weightKg": 100.0,
+                  "heightCm": 180.0,
+                  "age": 30,
+                  "gender": "MALE",
+                  "targetWeightChangeKg": 0.0,
+                  "activityLevel": 1,
+                  "calorieDistribution": "HIGH_PROTEIN",
+                  "customProteinPercent": 40,
+                  "customFatPercent": 30,
+                  "customCarbPercent": 30,
+                  "openAiApiKey": "",
+                  "customModeEnabled": false,
+                  "hideCaloriesEnabled": false,
+                  "hideBudgetExceededEnabled": false,
+                  "customProteinGrams": 0,
+                  "customFatGrams": 0,
+                  "customCarbGrams": 0
+                },
+                "meals": [],
+                "conversations": []
+              },
+              "secureStorage": {
+                "apiKey": ""
+              }
+            }
+            """.trimIndent()
 
         StateFixtureManager.restoreState(context, fixture)
 
