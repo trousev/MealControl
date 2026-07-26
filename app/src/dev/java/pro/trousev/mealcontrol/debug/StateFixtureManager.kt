@@ -1,6 +1,7 @@
 package pro.trousev.mealcontrol.debug
 
 import android.content.Context
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
@@ -150,7 +151,7 @@ object StateFixtureManager {
 
         // Read all data within a single blocking coroutine scope
         val (userSettings, mealsWithComponents, conversationsWithMessages) =
-            runBlocking {
+            runBlocking(Dispatchers.IO) {
                 val settings = settingsRepo.getSettings()
                 val meals = db.mealDao().getAllMealsWithComponents()
                 val conversations = db.conversationDao().getAllConversationsWithMessages()
@@ -201,7 +202,7 @@ object StateFixtureManager {
 
         val db = ServiceLocator.provideDatabase()
 
-        runBlocking {
+        runBlocking(Dispatchers.IO) {
             // Clear existing data in FK-safe order
             db.messageDao().deleteAllMessages()
             db.conversationDao().deleteAllConversations()

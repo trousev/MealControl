@@ -17,6 +17,7 @@ class DebugMainActivity : ComponentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
         ServiceLocator.initialize(this)
 
         when (intent?.action) {
@@ -32,7 +33,6 @@ class DebugMainActivity : ComponentActivity() {
             }
         }
 
-        super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             MealControlTheme {
