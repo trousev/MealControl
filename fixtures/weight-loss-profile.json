@@ -1,0 +1,33 @@
+{
+  "formatVersion": 1,
+  "createdAt": "2026-07-26T00:00:00.000Z",
+  "description": "Weight loss profile: adult male, 120kg, 180cm, 35yo, losing 0.5kg/week, lightly active, high protein diet",
+  "roomSchemaVersion": 8,
+  "data": {
+    "userSettings": {
+      "id": 1,
+      "weightKg": 120.0,
+      "heightCm": 180.0,
+      "age": 35,
+      "gender": "MALE",
+      "targetWeightChangeKg": -0.5,
+      "activityLevel": 2,
+      "calorieDistribution": "HIGH_PROTEIN",
+      "customProteinPercent": 40,
+      "customFatPercent": 30,
+      "customCarbPercent": 30,
+      "openAiApiKey": "",
+      "customModeEnabled": false,
+      "hideCaloriesEnabled": false,
+      "hideBudgetExceededEnabled": true,
+      "customProteinGrams": 0,
+      "customFatGrams": 0,
+      "customCarbGrams": 0
+    },
+    "meals": [],
+    "conversations": []
+  },
+  "secureStorage": {
+    "apiKey": ""
+  }
+}
