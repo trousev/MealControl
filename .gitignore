@@ -15,3 +15,5 @@
 .env
 local.properties
 *.swp
+__pycache__/
+/app/release/
