@@ -32,4 +32,7 @@ interface ConversationDao {
 
     @Query("DELETE FROM conversations WHERE id = :conversationId")
     suspend fun deleteConversation(conversationId: Long)
+
+    @Query("DELETE FROM conversations")
+    suspend fun deleteAllConversations()
 }
