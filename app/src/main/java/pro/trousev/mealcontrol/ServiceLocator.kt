@@ -19,9 +19,10 @@ object ServiceLocator {
     fun initialize(
         appContext: Context,
         testSecureStorage: SecureStorage? = null,
+        testDatabase: MealControlDatabase? = null,
     ) {
         context = appContext.applicationContext
-        database = MealControlDatabase.getDatabase(context!!)
+        database = testDatabase ?: MealControlDatabase.getDatabase(context!!)
         secureStorage = testSecureStorage ?: ApiKeyManager(context!!)
     }
 

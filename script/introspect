@@ -40,6 +40,11 @@ Commands:
   logcat           [opts]    Dump recent logcat (--filter <pat> --lines <n> --clear)
   wait-boot        [sec]     Wait for device to finish booting
   wait-text        <text>    Wait until text appears on screen
+
+  dump             [-o PATH] Dump app state (DB+SecureStorage) as JSON fixture
+  restore          -f PATH   Restore app state from JSON fixture
+  record           -s PATH   Run recording script, dump resulting state
+                    -o PATH
 """
 
 import argparse
@@ -753,6 +758,234 @@ def _yesno(val: bool) -> str:
     return f"{GREEN}yes{RESET}" if val else f"{RED}no{RESET}"
 
 
+# ── Fixture commands ─────────────────────────────────────────────────────────
+
+def fixture_dump(output_path: Optional[str] = None) -> None:
+    """Dump entire app state (Room DB + SecureStorage) as JSON fixture."""
+    ensure_device()
+    info("Dumping app state...")
+
+    # Stop the app first to ensure clean state
+    app_stop()
+
+    # Launch DebugMainActivity with DUMP_STATE action
+    info("Launching dump activity...")
+    result = subprocess.run(
+        [get_adb(), "shell", "am", "start", "-W",
+         "-n", f"{APP_ID_DEBUG}/.DebugMainActivity",
+         "-a", "pro.trousev.mealcontrol.DUMP_STATE"],
+        capture_output=True, text=True, timeout=30,
+    )
+    if "Error" in result.stdout:
+        die(f"Failed to start dump activity: {result.stdout}")
+
+    # Pull the dumped JSON from the device
+    info("Pulling fixture from device...")
+    pull_result = subprocess.run(
+        [get_adb(), "exec-out", "run-as", APP_ID_DEBUG,
+         "cat", "files/state_fixture.json"],
+        capture_output=True, timeout=15,
+    )
+
+    if pull_result.returncode != 0 or not pull_result.stdout.strip():
+        # Fallback: try with full path
+        pull_result = subprocess.run(
+            [get_adb(), "exec-out", "run-as", APP_ID_DEBUG,
+             "cat", f"/data/data/{APP_ID_DEBUG}/files/state_fixture.json"],
+            capture_output=True, timeout=15,
+        )
+
+    if pull_result.returncode != 0 or not pull_result.stdout.strip():
+        die("Failed to pull fixture from device. Ensure the app is built with the dev variant.")
+
+    json_text = pull_result.stdout.decode("utf-8", errors="replace")
+
+    # Validate JSON
+    try:
+        parsed = json.loads(json_text)
+    except json.JSONDecodeError as e:
+        die(f"Dumped data is not valid JSON: {e}")
+
+    if output_path:
+        output_file = Path(output_path)
+        if not output_file.is_absolute():
+            output_file = Path.cwd() / output_file
+        output_file.write_text(json_text, encoding="utf-8")
+        success(f"Fixture dumped to {output_file} ({len(json_text):,} bytes)")
+    else:
+        print(json_text)
+        success(f"Fixture dumped to stdout ({len(json_text):,} bytes)")
+
+
+def fixture_restore(input_path: str) -> None:
+    """Restore app state from a JSON fixture file."""
+    ensure_device()
+
+    fixture_file = Path(input_path)
+    if not fixture_file.is_absolute():
+        fixture_file = Path.cwd() / fixture_file
+
+    if not fixture_file.exists():
+        die(f"Fixture file not found: {fixture_file}")
+
+    # Read and validate JSON
+    try:
+        fixture_data = fixture_file.read_text(encoding="utf-8")
+        json.loads(fixture_data)  # validate
+    except json.JSONDecodeError as e:
+        die(f"Fixture file is not valid JSON: {e}")
+
+    info(f"Restoring app state from {fixture_file} ({len(fixture_data):,} bytes)...")
+
+    # Stop the app
+    app_stop()
+
+    # Push fixture file to device temp location
+    info("Pushing fixture to device...")
+    device_tmp = "/data/local/tmp/restore_fixture.json"
+    push_result = subprocess.run(
+        [get_adb(), "push", str(fixture_file), device_tmp],
+        capture_output=True, text=True, timeout=15,
+    )
+    if push_result.returncode != 0:
+        die(f"Failed to push fixture to device: {push_result.stderr}")
+
+    # Copy fixture to app's files directory
+    info("Copying fixture to app data directory...")
+    copy_cmd = (
+        f"cat {device_tmp} | "
+        f"run-as {APP_ID_DEBUG} sh -c 'cat > files/restore_fixture.json'"
+    )
+    copy_result = adb_shell(copy_cmd, timeout=15)
+
+    # Clean up temp file
+    subprocess.run(
+        [get_adb(), "shell", "rm", "-f", device_tmp],
+        capture_output=True, timeout=5,
+    )
+
+    # Launch DebugMainActivity with RESTORE_STATE action
+    info("Launching restore activity...")
+    result = subprocess.run(
+        [get_adb(), "shell", "am", "start", "-W",
+         "-n", f"{APP_ID_DEBUG}/.DebugMainActivity",
+         "-a", "pro.trousev.mealcontrol.RESTORE_STATE"],
+        capture_output=True, text=True, timeout=30,
+    )
+
+    if "Error" in result.stdout:
+        die(f"Failed to start restore activity: {result.stdout}")
+
+    success("Fixture restored successfully")
+
+
+def fixture_record(script_path: str, output_path: str) -> None:
+    """Run a recording script (lines of introspect commands) and dump the result."""
+    ensure_device()
+
+    script_file = Path(script_path)
+    if not script_file.is_absolute():
+        script_file = Path.cwd() / script_file
+
+    if not script_file.exists():
+        die(f"Recording script not found: {script_file}")
+
+    output_file = Path(output_path)
+    if not output_file.is_absolute():
+        output_file = Path.cwd() / output_file
+
+    info(f"Recording fixture using script: {script_file}")
+
+    # 1. Clear app data
+    info("Clearing app data for clean recording...")
+    app_clear_data()
+
+    # 2. Install & launch
+    app_install("debug")
+    app_launch("debug")
+
+    # Give the app a moment to settle
+    time.sleep(2)
+
+    # 3. Execute recording script line by line
+    lines = script_file.read_text().splitlines()
+    for line_num, line in enumerate(lines, 1):
+        line = line.strip()
+        # Skip empty lines and comments
+        if not line or line.startswith("#"):
+            continue
+
+        info(f"[{line_num}] Executing: {line}")
+
+        # Parse the line into command + args
+        parts = line.split()
+        if parts[0].startswith("./script/introspect"):
+            parts = parts[1:]
+        elif parts[0] == "introspect":
+            parts = parts[1:]
+
+        if not parts:
+            continue
+
+        cmd_name = parts[0]
+        cmd_args = parts[1:]
+
+        # Build adb command
+        if cmd_name in ("tap",):
+            if len(cmd_args) >= 2:
+                tap(int(cmd_args[0]), int(cmd_args[1]))
+        elif cmd_name in ("type",):
+            if cmd_args:
+                type_text(" ".join(cmd_args))
+        elif cmd_name in ("press",):
+            if cmd_args:
+                press_key(cmd_args[0])
+        elif cmd_name in ("swipe",):
+            if len(cmd_args) >= 4:
+                x1, y1, x2, y2 = int(cmd_args[0]), int(cmd_args[1]), int(cmd_args[2]), int(cmd_args[3])
+                dur = int(cmd_args[4]) if len(cmd_args) >= 5 else 300
+                swipe(x1, y1, x2, y2, dur)
+        elif cmd_name in ("wait-text", "wait"):
+            if cmd_args:
+                timeout = int(cmd_args[1]) if len(cmd_args) >= 2 else 30
+                wait_text(cmd_args[0], timeout)
+        elif cmd_name in ("wait-boot", "boot"):
+            timeout = int(cmd_args[0]) if cmd_args else 120
+            emulator_wait_boot(timeout)
+        elif cmd_name in ("sleep",):
+            if cmd_args:
+                time.sleep(float(cmd_args[0]))
+        elif cmd_name in ("launch",):
+            app_launch("debug")
+        elif cmd_name in ("stop", "stop-app"):
+            app_stop()
+        elif cmd_name in ("screenshot", "shot", "ss"):
+            screenshot()
+        elif cmd_name in ("has-text",):
+            if cmd_args:
+                has_text(cmd_args[0])
+        elif cmd_name in ("longpress", "lp"):
+            if len(cmd_args) >= 2:
+                dur = int(cmd_args[2]) if len(cmd_args) >= 3 else 1000
+                longpress(int(cmd_args[0]), int(cmd_args[1]), dur)
+        elif cmd_name in ("find",):
+            pass  # find is informational, skip during recording
+        elif cmd_name in ("ui", "logcat", "logs", "log"):
+            pass  # these are informational
+        else:
+            warn(f"Unknown recording command: {cmd_name} (skipping)")
+
+        time.sleep(0.5)
+
+    # 4. Wait a moment for final saves to complete
+    time.sleep(2)
+
+    # 5. Dump state
+    info("Recording complete. Dumping state...")
+    fixture_dump(str(output_file))
+    success(f"Fixture recorded to {output_file}")
+
+
 # ── CLI dispatcher ──────────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
@@ -870,6 +1103,19 @@ Examples:
     sub.add_parser("current-activity", help="Print current activity name",
                    aliases=["activity", "curr"])
 
+    # dump
+    p = sub.add_parser("dump", help="Dump app state as JSON fixture")
+    p.add_argument("--output", "-o", default=None, help="Output file path (default: stdout)")
+
+    # restore
+    p = sub.add_parser("restore", help="Restore app state from JSON fixture")
+    p.add_argument("--from", "-f", dest="input_path", required=True, help="Fixture JSON file path")
+
+    # record
+    p = sub.add_parser("record", help="Run a recording script and dump the resulting state")
+    p.add_argument("--script", "-s", required=True, help="Recording script path")
+    p.add_argument("--output", "-o", required=True, help="Output fixture JSON path")
+
     return parser
 
 
@@ -947,6 +1193,12 @@ def main() -> None:
             sys.exit(0 if found else 1)
         elif cmd == "current-activity":
             current_activity()
+        elif cmd == "dump":
+            fixture_dump(args.output)
+        elif cmd == "restore":
+            fixture_restore(args.input_path)
+        elif cmd == "record":
+            fixture_record(args.script, args.output)
         else:
             parser.print_help()
             sys.exit(1)
